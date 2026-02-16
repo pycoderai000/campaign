@@ -170,7 +170,7 @@ export default function DeliverablesTable({
                                     key={idx}
                                     className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-semibold border border-indigo-200"
                                   >
-                                    {file.name}
+                                    {typeof file === "string" ? file.split("/").pop() || "File" : file.name}
                                   </span>
                                 ))}
                               </div>
