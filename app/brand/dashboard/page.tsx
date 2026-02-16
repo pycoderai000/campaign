@@ -268,23 +268,23 @@ export default function BrandDashboard() {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <Sidebar role="brand" items={sidebarItems} activeView={activeView} />
-      <div className="flex-1 p-8 overflow-auto">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+      <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto lg:ml-0">
+        <div className="mb-6 lg:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-2">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-2">
                 Brand Dashboard
               </h1>
-              <p className="text-gray-600 font-medium">Manage your campaigns and deliverables</p>
+              <p className="text-sm sm:text-base text-gray-600 font-medium">Manage your campaigns and deliverables</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <NotificationBar
                 notifications={notifications}
                 onNotificationClick={handleNotificationClick}
                 onMarkAsRead={handleMarkAsRead}
               />
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-2xl">🏢</span>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-xl sm:text-2xl">🏢</span>
               </div>
             </div>
           </div>
@@ -292,9 +292,9 @@ export default function BrandDashboard() {
 
         {activeView === "campaigns" && (
           <div>
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-slate-800 mb-6">Campaigns</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <div className="mb-6 lg:mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-4 sm:mb-6">Campaigns</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
                 {campaigns.map((campaign) => {
                   const campaignDeliverables = deliverables.filter(
                     (d) => d.campaignId === campaign.id
@@ -310,27 +310,27 @@ export default function BrandDashboard() {
                     <button
                       key={campaign.id}
                       onClick={() => setSelectedCampaign(campaign.id)}
-                      className={`group p-6 rounded-2xl border-2 transition-all duration-200 text-left transform hover:scale-105 ${
+                      className={`group p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 transition-all duration-200 text-left transform hover:scale-[1.02] sm:hover:scale-105 ${
                         isSelected
                           ? "border-indigo-500 bg-gradient-to-br from-indigo-50 to-purple-50 shadow-lg"
                           : "border-gray-200 bg-white/80 backdrop-blur-sm hover:border-indigo-300 hover:shadow-md"
                       }`}
                     >
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                      <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
                           isSelected
                             ? `bg-gradient-to-br ${typeColors[campaign.type] || "from-indigo-500 to-purple-600"}`
                             : "bg-gray-100"
                         }`}>
-                          <span className="text-2xl">
+                          <span className="text-xl sm:text-2xl">
                             {campaign.type === "LinkedIn" ? "💼" : campaign.type === "Instagram" ? "📷" : campaign.type === "YouTube" ? "📺" : "🎵"}
                           </span>
                         </div>
-                        <h3 className={`font-bold text-lg ${
+                        <h3 className={`font-bold text-base sm:text-lg ${
                           isSelected ? "text-indigo-700" : "text-gray-800"
                         }`}>{campaign.name}</h3>
                       </div>
-                      <p className={`text-sm font-semibold ${
+                      <p className={`text-xs sm:text-sm font-semibold ${
                         isSelected ? "text-indigo-600" : "text-gray-600"
                       }`}>
                         {campaign.type} • {campaignDeliverables.length} deliverables
@@ -343,7 +343,7 @@ export default function BrandDashboard() {
 
             {selectedCampaign ? (
               <div>
-                <h3 className="text-2xl font-bold text-slate-800 mb-6">
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4 sm:mb-6">
                   Deliverables for {campaigns.find((c) => c.id === selectedCampaign)?.name}
                 </h3>
                 {filteredDeliverables.length === 0 ? (
@@ -381,7 +381,7 @@ export default function BrandDashboard() {
 
         {activeView === "metrics" && (
           <div>
-            <h2 className="text-3xl font-bold text-slate-800 mb-6">Campaign Metrics</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-4 sm:mb-6">Campaign Metrics</h2>
             <CampaignMetrics campaigns={campaigns} deliverables={deliverables} />
           </div>
         )}

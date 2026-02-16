@@ -188,23 +188,23 @@ export default function AdminDashboard() {
         items={sidebarItems}
         activeView={activeView}
       />
-      <div className="flex-1 p-8 overflow-auto">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+      <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto lg:ml-0">
+        <div className="mb-6 lg:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-2">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-2">
                 Admin Dashboard
               </h1>
-              <p className="text-gray-600 font-medium">Manage brands, campaigns, and deliverables</p>
+              <p className="text-sm sm:text-base text-gray-600 font-medium">Manage brands, campaigns, and deliverables</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <NotificationBar
                 notifications={notifications}
                 onNotificationClick={handleNotificationClick}
                 onMarkAsRead={handleMarkAsRead}
               />
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
@@ -214,16 +214,17 @@ export default function AdminDashboard() {
 
         {activeView === "brands" && (
           <div>
-            <div className="mb-6 flex justify-between items-center">
-              <h2 className="text-3xl font-bold text-slate-800">Brands</h2>
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-800">Brands</h2>
               <button
                 onClick={() => setShowCreateBrand(true)}
-                className="group flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 font-semibold"
+                className="group flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 font-semibold text-sm sm:text-base"
               >
-                <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Create Brand
+                <span className="hidden sm:inline">Create Brand</span>
+                <span className="sm:hidden">Create</span>
               </button>
             </div>
             {brands.length === 0 ? (
@@ -296,8 +297,8 @@ export default function AdminDashboard() {
 
         {activeView === "campaigns" && (
           <div>
-            <div className="mb-6 flex justify-between items-center">
-              <h2 className="text-3xl font-bold text-slate-800">Campaigns</h2>
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-800">Campaigns</h2>
               <button
                 onClick={() => {
                   if (brands.length === 0) {
@@ -306,7 +307,7 @@ export default function AdminDashboard() {
                   }
                   setShowCreateCampaign(true);
                 }}
-                className={`group flex items-center gap-2 px-6 py-3 rounded-xl transition-all duration-200 font-semibold ${
+                className={`group flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all duration-200 font-semibold text-sm sm:text-base ${
                   brands.length === 0
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
@@ -314,10 +315,11 @@ export default function AdminDashboard() {
                 disabled={brands.length === 0}
                 title={brands.length === 0 ? "Create a brand first" : ""}
               >
-                <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Create Campaign
+                <span className="hidden sm:inline">Create Campaign</span>
+                <span className="sm:hidden">Create</span>
               </button>
             </div>
             {campaigns.length === 0 ? (
@@ -375,8 +377,8 @@ export default function AdminDashboard() {
 
         {activeView === "deliverables" && (
           <div>
-            <div className="mb-6 flex justify-between items-center">
-              <h2 className="text-3xl font-bold text-slate-800">Deliverables</h2>
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-800">Deliverables</h2>
               <button
                 onClick={() => {
                   if (campaigns.length === 0) {
@@ -385,7 +387,7 @@ export default function AdminDashboard() {
                   }
                   setShowCreateDeliverable(true);
                 }}
-                className={`group flex items-center gap-2 px-6 py-3 rounded-xl transition-all duration-200 font-semibold ${
+                className={`group flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all duration-200 font-semibold text-sm sm:text-base ${
                   campaigns.length === 0
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
@@ -393,10 +395,11 @@ export default function AdminDashboard() {
                 disabled={campaigns.length === 0}
                 title={campaigns.length === 0 ? "Create a campaign first" : ""}
               >
-                <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Add Deliverable
+                <span className="hidden sm:inline">Add Deliverable</span>
+                <span className="sm:hidden">Add</span>
               </button>
             </div>
             {showCreateDeliverable ? (
@@ -417,7 +420,7 @@ export default function AdminDashboard() {
 
         {activeView === "metrics" && (
           <div>
-            <h2 className="text-3xl font-bold text-slate-800 mb-6">Campaign Metrics</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-4 sm:mb-6">Campaign Metrics</h2>
             <CampaignMetrics campaigns={campaigns} deliverables={deliverables} />
           </div>
         )}

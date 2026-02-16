@@ -52,9 +52,9 @@ export default function EditDeliverableForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
           Deliverable Name <span className="text-red-500">*</span>
         </label>
         <input
@@ -62,12 +62,12 @@ export default function EditDeliverableForm({
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           required
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm"
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
           Post Type <span className="text-red-500">*</span>
         </label>
         <select
@@ -82,7 +82,7 @@ export default function EditDeliverableForm({
             }
           }}
           required
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer"
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer text-sm sm:text-base"
         >
           {postTypes.map((type) => (
             <option key={type} value={type}>
@@ -93,7 +93,7 @@ export default function EditDeliverableForm({
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
           File Upload <span className="text-gray-500 text-xs">(Video, Single Image, or Multiple Images)</span>
         </label>
         <input
@@ -115,7 +115,7 @@ export default function EditDeliverableForm({
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
           Caption <span className="text-red-500">*</span>
         </label>
         <textarea
@@ -123,13 +123,13 @@ export default function EditDeliverableForm({
           onChange={(e) => setFormData({ ...formData, caption: e.target.value })}
           required
           rows={4}
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm resize-none"
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm resize-none text-sm sm:text-base"
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
             Posting Date <span className="text-red-500">*</span>
           </label>
           <input
@@ -137,11 +137,11 @@ export default function EditDeliverableForm({
             value={formData.postingDate}
             onChange={(e) => setFormData({ ...formData, postingDate: e.target.value })}
             required
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
             Posting Time <span className="text-red-500">*</span>
           </label>
           <input
@@ -149,33 +149,33 @@ export default function EditDeliverableForm({
             value={formData.postingTime}
             onChange={(e) => setFormData({ ...formData, postingTime: e.target.value })}
             required
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
           Add Live Link
         </label>
         <input
           type="url"
           value={formData.liveLink}
           onChange={(e) => setFormData({ ...formData, liveLink: e.target.value })}
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm"
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
           placeholder="https://..."
         />
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
           Status <span className="text-red-500">*</span>
         </label>
         <select
           value={formData.status}
           onChange={(e) => setFormData({ ...formData, status: e.target.value as DeliverableStatus })}
           required
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer"
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer text-sm sm:text-base"
         >
           {statuses.map((status) => (
             <option key={status} value={status}>
@@ -185,17 +185,17 @@ export default function EditDeliverableForm({
         </select>
       </div>
 
-      <div className="flex gap-4 pt-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
         <button
           type="submit"
-          className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3.5 px-6 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+          className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 sm:py-3.5 px-4 sm:px-6 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] text-sm sm:text-base"
         >
           Update Deliverable
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 bg-gray-100 text-gray-700 py-3.5 px-6 rounded-xl font-semibold hover:bg-gray-200 transition-all duration-200"
+          className="flex-1 bg-gray-100 text-gray-700 py-3 sm:py-3.5 px-4 sm:px-6 rounded-xl font-semibold hover:bg-gray-200 transition-all duration-200 text-sm sm:text-base"
         >
           Cancel
         </button>

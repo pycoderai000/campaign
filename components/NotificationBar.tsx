@@ -67,9 +67,9 @@ export default function NotificationBar({
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 max-h-[600px] overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex justify-between items-center">
-              <h3 className="text-white font-bold text-lg">Notifications</h3>
+          <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-white rounded-xl sm:rounded-2xl shadow-2xl border border-gray-200 z-50 max-h-[600px] overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
+              <h3 className="text-white font-bold text-base sm:text-lg">Notifications</h3>
               <button
                 onClick={() => setIsOpen(false)}
                 className="text-white/80 hover:text-white"

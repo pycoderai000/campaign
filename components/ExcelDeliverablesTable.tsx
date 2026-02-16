@@ -138,40 +138,41 @@ export default function ExcelDeliverablesTable({
           </button>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-soft overflow-hidden border border-gray-200">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-soft overflow-hidden border border-gray-200">
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+              <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-indigo-50 to-purple-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Deliverable Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Campaign</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Post Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Caption</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Posting Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Posting Time</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Upload Creative</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">View</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Actions</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Name</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase hidden md:table-cell">Campaign</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase hidden lg:table-cell">Type</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase hidden xl:table-cell">Caption</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase hidden lg:table-cell">Date</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase hidden xl:table-cell">Time</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Status</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Upload</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">View</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {rows.map((row, index) => (
                   <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3">
                       <input
                         type="text"
                         value={row.name || ""}
                         onChange={(e) => updateRow(index, "name", e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                        placeholder="Deliverable name"
+                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm"
+                        placeholder="Name"
                       />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 hidden md:table-cell">
                       <select
                         value={row.campaignId || ""}
                         onChange={(e) => updateRow(index, "campaignId", e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm"
                       >
                         {campaigns.map((campaign) => (
                           <option key={campaign.id} value={campaign.id}>
@@ -180,11 +181,11 @@ export default function ExcelDeliverablesTable({
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 hidden lg:table-cell">
                       <select
                         value={row.postType || "Static"}
                         onChange={(e) => updateRow(index, "postType", e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm"
                       >
                         {postTypes.map((type) => (
                           <option key={type} value={type}>
@@ -193,36 +194,36 @@ export default function ExcelDeliverablesTable({
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 hidden xl:table-cell">
                       <textarea
                         value={row.caption || ""}
                         onChange={(e) => updateRow(index, "caption", e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm resize-none"
+                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm resize-none"
                         rows={2}
                         placeholder="Caption..."
                       />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 hidden lg:table-cell">
                       <input
                         type="date"
                         value={row.postingDate || ""}
                         onChange={(e) => updateRow(index, "postingDate", e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm"
                       />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 hidden xl:table-cell">
                       <input
                         type="time"
                         value={row.postingTime || ""}
                         onChange={(e) => updateRow(index, "postingTime", e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm"
                       />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3">
                       <select
                         value={row.status || "New content"}
                         onChange={(e) => updateRow(index, "status", e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm"
                       >
                         {statuses.map((status) => (
                           <option key={status} value={status}>
@@ -231,7 +232,7 @@ export default function ExcelDeliverablesTable({
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3">
                       <label className="cursor-pointer">
                         <input
                           type="file"
@@ -240,48 +241,49 @@ export default function ExcelDeliverablesTable({
                           accept="image/*,video/*"
                           className="hidden"
                         />
-                        <span className="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-200 transition-colors inline-block">
-                          {row.files && row.files.length > 0 ? `${row.files.length} file(s)` : "Upload"}
+                        <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-200 transition-colors inline-block">
+                          {row.files && row.files.length > 0 ? `${row.files.length}` : "📤"}
                         </span>
                       </label>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3">
                       {row.files && row.files.length > 0 ? (
                         <button
                           onClick={() => handleViewContent(row, index)}
-                          className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-semibold hover:bg-green-200 transition-colors"
+                          className="px-2 sm:px-3 py-1 sm:py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-semibold hover:bg-green-200 transition-colors"
                         >
-                          View
+                          👁️
                         </button>
                       ) : (
-                        <span className="text-gray-400 text-xs">No files</span>
+                        <span className="text-gray-400 text-xs">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3">
                       <button
                         onClick={() => deleteRow(index)}
-                        className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-semibold hover:bg-red-200 transition-colors"
+                        className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-semibold hover:bg-red-200 transition-colors"
                       >
-                        Delete
+                        🗑️
                       </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
 
-        <div className="flex gap-4 justify-end">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-end">
           <button
             onClick={onCancel}
-            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"
+            className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all text-sm sm:text-base"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
+            className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg text-sm sm:text-base"
           >
             Save All Deliverables
           </button>

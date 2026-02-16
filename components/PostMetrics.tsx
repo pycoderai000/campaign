@@ -61,43 +61,43 @@ export default function PostMetrics({ deliverable }: PostMetricsProps) {
   }));
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <p className="text-sm text-gray-600 mb-1">Impressions</p>
-          <p className="text-2xl font-bold text-blue-700">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4">
+        <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
+          <p className="text-xs sm:text-sm text-gray-600 mb-1">Impressions</p>
+          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-700">
             {latestMetrics.impressions.toLocaleString()}
           </p>
         </div>
-        <div className="bg-green-50 p-4 rounded-lg">
-          <p className="text-sm text-gray-600 mb-1">Reach</p>
-          <p className="text-2xl font-bold text-green-700">
+        <div className="bg-green-50 p-3 sm:p-4 rounded-lg">
+          <p className="text-xs sm:text-sm text-gray-600 mb-1">Reach</p>
+          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-700">
             {latestMetrics.reach.toLocaleString()}
           </p>
         </div>
-        <div className="bg-purple-50 p-4 rounded-lg">
-          <p className="text-sm text-gray-600 mb-1">Likes</p>
-          <p className="text-2xl font-bold text-purple-700">
+        <div className="bg-purple-50 p-3 sm:p-4 rounded-lg">
+          <p className="text-xs sm:text-sm text-gray-600 mb-1">Likes</p>
+          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-700">
             {latestMetrics.likes.toLocaleString()}
           </p>
         </div>
-        <div className="bg-yellow-50 p-4 rounded-lg">
-          <p className="text-sm text-gray-600 mb-1">Comments</p>
-          <p className="text-2xl font-bold text-yellow-700">
+        <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg">
+          <p className="text-xs sm:text-sm text-gray-600 mb-1">Comments</p>
+          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-yellow-700">
             {latestMetrics.comments.toLocaleString()}
           </p>
         </div>
-        <div className="bg-indigo-50 p-4 rounded-lg">
-          <p className="text-sm text-gray-600 mb-1">Engagement</p>
-          <p className="text-2xl font-bold text-indigo-700">
+        <div className="bg-indigo-50 p-3 sm:p-4 rounded-lg">
+          <p className="text-xs sm:text-sm text-gray-600 mb-1">Engagement</p>
+          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-indigo-700">
             {latestMetrics.engagement.toLocaleString()}
           </p>
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-lg shadow">
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+      <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
+        <div className="mb-3 sm:mb-4">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
             Select Metric
           </label>
           <select
@@ -105,7 +105,7 @@ export default function PostMetrics({ deliverable }: PostMetricsProps) {
             onChange={(e) =>
               setSelectedMetric(e.target.value as "impressions" | "reach" | "engagement")
             }
-            className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm sm:text-base"
           >
             <option value="impressions">Impressions</option>
             <option value="reach">Reach</option>

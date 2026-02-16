@@ -82,7 +82,7 @@ export default function ContentViewer({
             }}
             src={videoUrl}
             controls
-            className="w-full h-auto max-h-[600px]"
+            className="w-full h-auto max-h-[300px] sm:max-h-[400px] lg:max-h-[600px]"
             onLoadedMetadata={(e) => {
               const target = e.target as HTMLVideoElement;
               target.controls = true;
@@ -157,7 +157,7 @@ export default function ContentViewer({
           <img
             src={imageUrl}
             alt="Content"
-            className="w-full h-auto max-h-[600px] object-contain cursor-pointer"
+            className="w-full h-auto max-h-[300px] sm:max-h-[400px] lg:max-h-[600px] object-contain cursor-pointer"
             onClick={handleFullscreen}
           />
           <button
@@ -213,7 +213,7 @@ export default function ContentViewer({
           <img
             src={getFileUrl(displayFiles[currentImageIndex])}
             alt={`Slide ${currentImageIndex + 1}`}
-            className="w-full h-auto max-h-[600px] object-contain"
+            className="w-full h-auto max-h-[300px] sm:max-h-[400px] lg:max-h-[600px] object-contain"
           />
           {displayFiles.length > 1 && (
             <>
@@ -221,9 +221,9 @@ export default function ContentViewer({
                 onClick={() =>
                   setCurrentImageIndex((prev) => (prev === 0 ? displayFiles.length - 1 : prev - 1))
                 }
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+                className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1.5 sm:p-2 rounded-full transition-colors"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
@@ -231,13 +231,13 @@ export default function ContentViewer({
                 onClick={() =>
                   setCurrentImageIndex((prev) => (prev === displayFiles.length - 1 ? 0 : prev + 1))
                 }
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+                className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1.5 sm:p-2 rounded-full transition-colors"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+              <div className="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm">
                 {currentImageIndex + 1} / {displayFiles.length}
               </div>
             </>

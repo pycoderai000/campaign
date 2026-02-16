@@ -97,9 +97,9 @@ export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormP
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
           Brand Name <span className="text-red-500">*</span>
         </label>
         <input
@@ -107,13 +107,13 @@ export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormP
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           required
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm"
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
           placeholder="Enter brand name"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
           Brand POC <span className="text-red-500">*</span>
         </label>
         <input
@@ -121,13 +121,13 @@ export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormP
           value={formData.poc}
           onChange={(e) => setFormData({ ...formData, poc: e.target.value })}
           required
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm"
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
           placeholder="Enter point of contact name"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
           Brand Email ID <span className="text-red-500">*</span>
         </label>
         <input
@@ -135,13 +135,13 @@ export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormP
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           required
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm"
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
           placeholder="brand@example.com"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
           Brand Contact Number <span className="text-red-500">*</span>
         </label>
         <input
@@ -149,24 +149,24 @@ export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormP
           value={formData.contactNumber}
           onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
           required
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm"
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
           placeholder="+1 (555) 000-0000"
         />
       </div>
 
-      <div className="border-t border-gray-200 pt-6 mt-6">
-        <h3 className="text-lg font-bold text-gray-800 mb-4">Social Media Links</h3>
+      <div className="border-t border-gray-200 pt-4 sm:pt-6 mt-4 sm:mt-6">
+        <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-3 sm:mb-4">Social Media Links</h3>
         
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
               Instagram Page Link
             </label>
             <input
               type="url"
               value={formData.instagramLink}
               onChange={(e) => handleInstagramLinkChange(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
               placeholder="https://instagram.com/username"
             />
             {formData.instagramHandle && (
@@ -180,14 +180,14 @@ export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormP
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
               YouTube Page Link
             </label>
             <input
               type="url"
               value={formData.youtubeLink}
               onChange={(e) => handleYouTubeLinkChange(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
               placeholder="https://youtube.com/@channel or https://youtube.com/c/channel"
             />
             {formData.youtubeHandle && (
@@ -201,14 +201,14 @@ export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormP
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
               TikTok Page Link
             </label>
             <input
               type="url"
               value={formData.tiktokLink}
               onChange={(e) => handleTikTokLinkChange(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
               placeholder="https://tiktok.com/@username"
             />
             {formData.tiktokHandle && (
@@ -223,17 +223,17 @@ export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormP
         </div>
       </div>
 
-      <div className="flex gap-4 pt-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
         <button
           type="submit"
-          className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3.5 px-6 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+          className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 sm:py-3.5 px-4 sm:px-6 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] text-sm sm:text-base"
         >
           Create Brand
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 bg-gray-100 text-gray-700 py-3.5 px-6 rounded-xl font-semibold hover:bg-gray-200 transition-all duration-200"
+          className="flex-1 bg-gray-100 text-gray-700 py-3 sm:py-3.5 px-4 sm:px-6 rounded-xl font-semibold hover:bg-gray-200 transition-all duration-200 text-sm sm:text-base"
         >
           Cancel
         </button>

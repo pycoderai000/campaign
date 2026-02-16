@@ -29,20 +29,20 @@ export default function LoginPage() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
       </div>
       
-      <div className="relative z-10 bg-white/80 backdrop-blur-xl p-10 rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl mb-4 shadow-lg">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="relative z-10 bg-white/80 backdrop-blur-xl p-6 sm:p-8 lg:p-10 rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-white/20">
+        <div className="mb-6 sm:mb-8 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl sm:rounded-2xl mb-3 sm:mb-4 shadow-lg">
+            <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
             Campaign Management
           </h1>
-          <p className="text-gray-600 font-medium">Sign in to your account</p>
+          <p className="text-sm sm:text-base text-gray-600 font-medium">Sign in to your account</p>
         </div>
 
-        <div className="mb-8 flex gap-3 p-1 bg-gray-100 rounded-xl">
+        <div className="mb-6 sm:mb-8 flex gap-2 sm:gap-3 p-1 bg-gray-100 rounded-lg sm:rounded-xl">
           <button
             type="button"
             onClick={() => {
@@ -50,9 +50,9 @@ export default function LoginPage() {
               setEmail("");
               setPassword("");
             }}
-            className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
+            className={`flex-1 py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold text-sm sm:text-base transition-all duration-200 ${
               isAdmin
-                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg transform scale-105"
+                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg"
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
@@ -65,9 +65,9 @@ export default function LoginPage() {
               setEmail("");
               setPassword("");
             }}
-            className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
+            className={`flex-1 py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold text-sm sm:text-base transition-all duration-200 ${
               !isAdmin
-                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg transform scale-105"
+                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg"
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >

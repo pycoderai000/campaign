@@ -36,8 +36,8 @@ export default function MetricsChart({ data, metricType }: MetricsChartProps) {
   }));
 
   return (
-    <div className="w-full h-80 bg-white p-4 rounded-lg shadow">
-      <h3 className="text-lg font-semibold mb-4 capitalize">
+    <div className="w-full h-64 sm:h-72 lg:h-80 bg-white p-3 sm:p-4 rounded-lg shadow">
+      <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 capitalize">
         {metricType} Over Time
       </h3>
       <ResponsiveContainer width="100%" height="100%">

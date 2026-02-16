@@ -33,35 +33,35 @@ export default function SocialMediaMetrics({ metrics }: SocialMediaMetricsProps)
   const chartData = selectedMetric === "followers" ? followersData : engagementData;
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-soft border border-gray-200">
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-slate-800 mb-2">Social Media Metrics</h2>
-          <p className="text-gray-600">Track your social media performance</p>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="bg-white/80 backdrop-blur-sm p-4 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl shadow-soft border border-gray-200">
+        <div className="mb-4 sm:mb-6">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">Social Media Metrics</h2>
+          <p className="text-sm sm:text-base text-gray-600">Track your social media performance</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl border border-blue-200 shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-3xl">👥</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-blue-200 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <span className="text-2xl sm:text-3xl">👥</span>
               <p className="text-xs font-bold text-blue-600 uppercase tracking-wide">Total Followers</p>
             </div>
-            <p className="text-4xl font-bold text-blue-700">{metrics.totalFollowers.toLocaleString()}</p>
+            <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-700">{metrics.totalFollowers.toLocaleString()}</p>
           </div>
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-2xl border border-purple-200 shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-3xl">📈</span>
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-purple-200 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <span className="text-2xl sm:text-3xl">📈</span>
               <p className="text-xs font-bold text-purple-600 uppercase tracking-wide">Engagement Rate</p>
             </div>
-            <p className="text-4xl font-bold text-purple-700">{metrics.engagementRate.toFixed(1)}%</p>
+            <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-purple-700">{metrics.engagementRate.toFixed(1)}%</p>
           </div>
         </div>
 
-        <div className="mb-6">
-          <div className="flex gap-4 mb-4">
+        <div className="mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
             <button
               onClick={() => setSelectedMetric("followers")}
-              className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+              className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold transition-all text-sm sm:text-base ${
                 selectedMetric === "followers"
                   ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -71,7 +71,7 @@ export default function SocialMediaMetrics({ metrics }: SocialMediaMetricsProps)
             </button>
             <button
               onClick={() => setSelectedMetric("engagement")}
-              className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+              className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold transition-all text-sm sm:text-base ${
                 selectedMetric === "engagement"
                   ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -81,8 +81,8 @@ export default function SocialMediaMetrics({ metrics }: SocialMediaMetricsProps)
             </button>
           </div>
 
-          <div className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-2xl border border-gray-200">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">
+          <div className="bg-gradient-to-br from-gray-50 to-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200">
+            <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-3 sm:mb-4">
               {selectedMetric === "followers" ? "Followers Count Month on Month" : "Engagement Growth Month on Month"}
             </h3>
             <ResponsiveContainer width="100%" height={400}>

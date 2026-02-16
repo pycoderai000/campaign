@@ -41,30 +41,31 @@ export default function DeliverablesTable({
   };
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-soft overflow-hidden border border-gray-200">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+    <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-soft overflow-hidden border border-gray-200">
+      <div className="overflow-x-auto -mx-4 sm:mx-0">
+        <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+          <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gradient-to-r from-indigo-50 to-purple-50">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                 Deliverable Name
               </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hidden sm:table-cell">
                 Campaign
               </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hidden md:table-cell">
                 Brand
               </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                 Post Type
               </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
                 Posting Date
               </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -87,52 +88,55 @@ export default function DeliverablesTable({
               deliverables.map((deliverable) => (
                 <>
                   <tr key={deliverable.id} id={`deliverable-${deliverable.id}`} className="hover:bg-indigo-50/50 transition-colors duration-150">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center">
-                          <span className="text-lg">📦</span>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <span className="text-base sm:text-lg">📦</span>
                         </div>
-                        <span className="text-sm font-semibold text-gray-900">{deliverable.name}</span>
+                        <div className="min-w-0">
+                          <span className="text-xs sm:text-sm font-semibold text-gray-900 block truncate">{deliverable.name}</span>
+                          <span className="text-xs text-gray-500 sm:hidden">{deliverable.campaignName}</span>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-700 font-medium">{deliverable.campaignName}</span>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
+                      <span className="text-xs sm:text-sm text-gray-700 font-medium">{deliverable.campaignName}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-700 font-medium">{deliverable.brandName}</span>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden md:table-cell">
+                      <span className="text-xs sm:text-sm text-gray-700 font-medium">{deliverable.brandName}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                      <span className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
                         {deliverable.postType}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-600">{formatDateTime(deliverable.postingDate, deliverable.postingTime)}</span>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden lg:table-cell">
+                      <span className="text-xs sm:text-sm text-gray-600">{formatDateTime(deliverable.postingDate, deliverable.postingTime)}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                       <span
-                        className={`px-3 py-1.5 inline-flex text-xs font-bold rounded-xl ${getStatusColor(
+                        className={`px-2 sm:px-3 py-1 sm:py-1.5 inline-flex text-xs font-bold rounded-xl ${getStatusColor(
                           deliverable.status
                         )}`}
                       >
                         {deliverable.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
                         <button
                           onClick={() => {
                             setExpandedRow(expandedRow === deliverable.id ? null : deliverable.id);
                             setShowMetrics(null);
                           }}
-                          className="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-200 transition-colors"
+                          className="px-2 sm:px-3 py-1 sm:py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-200 transition-colors"
                         >
                           {expandedRow === deliverable.id ? "Hide" : "View"}
                         </button>
                         {showEdit && onEdit && (
                           <button
                             onClick={() => onEdit(deliverable)}
-                            className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors"
+                            className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors"
                           >
                             Edit
                           </button>
@@ -142,9 +146,10 @@ export default function DeliverablesTable({
                             setShowMetrics(showMetrics === deliverable.id ? null : deliverable.id);
                             setExpandedRow(null);
                           }}
-                          className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-semibold hover:bg-green-200 transition-colors"
+                          className="px-2 sm:px-3 py-1 sm:py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-semibold hover:bg-green-200 transition-colors"
                         >
-                          {showMetrics === deliverable.id ? "Hide Stats" : "Stats"}
+                          <span className="hidden sm:inline">{showMetrics === deliverable.id ? "Hide Stats" : "Stats"}</span>
+                          <span className="sm:hidden">📊</span>
                         </button>
                       </div>
                     </td>
@@ -312,6 +317,7 @@ export default function DeliverablesTable({
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

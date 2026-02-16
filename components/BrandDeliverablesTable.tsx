@@ -57,27 +57,28 @@ export default function BrandDeliverablesTable({
 
   return (
     <>
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-soft overflow-hidden border border-gray-200">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-soft overflow-hidden border border-gray-200">
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+            <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gradient-to-r from-indigo-50 to-purple-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Thumbnail
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Deliverable Name
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Name
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Post Type
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hidden sm:table-cell">
+                  Type
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Posting Date
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
+                  Date
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -102,8 +103,8 @@ export default function BrandDeliverablesTable({
                   return (
                     <>
                       <tr key={deliverable.id} id={`deliverable-${deliverable.id}`} className="hover:bg-indigo-50/50 transition-colors duration-150">
-                        <td className="px-6 py-4">
-                          <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <div className="w-12 h-12 sm:w-16 sm:h-20 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                             {thumbnail ? (
                               <img
                                 src={thumbnail}
@@ -127,28 +128,31 @@ export default function BrandDeliverablesTable({
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm font-semibold text-gray-900">{deliverable.name}</span>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <div className="min-w-0">
+                            <span className="text-xs sm:text-sm font-semibold text-gray-900 block truncate">{deliverable.name}</span>
+                            <span className="text-xs text-gray-500 sm:hidden">{deliverable.postType}</span>
+                          </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
+                          <span className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
                             {deliverable.postType}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-600">{formatDateTime(deliverable.postingDate, deliverable.postingTime)}</span>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden lg:table-cell">
+                          <span className="text-xs sm:text-sm text-gray-600">{formatDateTime(deliverable.postingDate, deliverable.postingTime)}</span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                           <span
-                            className={`px-3 py-1.5 inline-flex text-xs font-bold rounded-xl ${getStatusColor(
+                            className={`px-2 sm:px-3 py-1 sm:py-1.5 inline-flex text-xs font-bold rounded-xl ${getStatusColor(
                               deliverable.status
                             )}`}
                           >
                             {deliverable.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
                             <button
                               onClick={() => handleViewContent(deliverable)}
                               className="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-200 transition-colors"
@@ -296,6 +300,7 @@ export default function BrandDeliverablesTable({
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
