@@ -17,6 +17,7 @@ export default function Sidebar({ role, items, activeView }: SidebarProps) {
       "Campaigns": "📊",
       "Deliverables": "📦",
       "Metrics": "📈",
+      "Social Media Metrics": "📱",
     };
     return icons[label] || "•";
   };

@@ -90,6 +90,29 @@ npm run dev
 - Supports single images, multiple images (carousel), and videos
 - File validation based on post type
 
+## Deployment
+
+### Deploy to Vercel (Recommended)
+
+The easiest way to deploy this Next.js app is using [Vercel](https://vercel.com):
+
+1. **Push your code to GitHub**
+2. **Import your repository to Vercel**
+3. **Deploy** - Vercel will automatically detect Next.js and configure everything
+
+For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+**Quick Deploy:**
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Deploy
+vercel
+```
+
+Your app will be live at `https://your-project.vercel.app`
+
 ## Next Steps
 
 1. **Backend Integration**: Connect to your API endpoints
@@ -98,6 +121,7 @@ npm run dev
 4. **Real-time Updates**: Add WebSocket support for real-time metric updates
 5. **Export Functionality**: Add Excel/CSV export for deliverables table
 6. **Notifications**: Add notification system for status changes and comments
+7. **Deploy to Production**: Follow the deployment guide to go live
 
 ## Technologies Used
 

@@ -1,20 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import NotificationBar from "@/components/NotificationBar";
 import Modal from "@/components/Modal";
 import CreateBrandForm from "@/components/CreateBrandForm";
 import CreateCampaignForm from "@/components/CreateCampaignForm";
-import CreateDeliverableForm from "@/components/CreateDeliverableForm";
+import ExcelDeliverablesTable from "@/components/ExcelDeliverablesTable";
 import DeliverablesTable from "@/components/DeliverablesTable";
 import CampaignMetrics from "@/components/CampaignMetrics";
-import type { Brand, Campaign, Deliverable } from "@/types";
+import ContentViewer from "@/components/ContentViewer";
+import EditDeliverableForm from "@/components/EditDeliverableForm";
+import type { Brand, Campaign, Deliverable, Notification, DeliverableStatus } from "@/types";
 
 export default function AdminDashboard() {
   const [activeView, setActiveView] = useState<"brands" | "campaigns" | "deliverables" | "metrics">("brands");
   const [showCreateBrand, setShowCreateBrand] = useState(false);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [showCreateDeliverable, setShowCreateDeliverable] = useState(false);
+  const [showEditDeliverable, setShowEditDeliverable] = useState(false);
+  const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   
   // Mock data - replace with actual API calls
   const [brands, setBrands] = useState<Brand[]>([
@@ -50,16 +56,130 @@ export default function AdminDashboard() {
     setShowCreateCampaign(false);
   };
 
-  const handleCreateDeliverable = (deliverableData: Omit<Deliverable, "id" | "createdAt" | "comments">) => {
-    const newDeliverable: Deliverable = {
-      ...deliverableData,
-      id: Date.now().toString(),
+  const handleCreateDeliverables = (newDeliverables: Deliverable[]) => {
+    const deliverablesWithIds = newDeliverables.map((d, index) => ({
+      ...d,
+      id: Date.now().toString() + index,
       comments: [],
       createdAt: new Date().toISOString(),
-    };
-    setDeliverables([...deliverables, newDeliverable]);
+      contentHistory: [],
+      revisions: [],
+    }));
+    
+    setDeliverables([...deliverables, ...deliverablesWithIds]);
     setShowCreateDeliverable(false);
+    
+    // Add notifications for new content
+    deliverablesWithIds.forEach((deliverable) => {
+      addNotification({
+        type: "new_content",
+        title: "New Content Uploaded",
+        message: `New content uploaded for ${deliverable.name}`,
+        deliverableId: deliverable.id,
+        campaignId: deliverable.campaignId,
+      });
+    });
   };
+
+  const handleUpdateDeliverable = (updated: Deliverable) => {
+    const oldDeliverable = deliverables.find((d) => d.id === updated.id);
+    
+    setDeliverables(deliverables.map((d) => (d.id === updated.id ? updated : d)));
+    setShowEditDeliverable(false);
+    setEditingDeliverable(null);
+    
+    // Check for status change
+    if (oldDeliverable && oldDeliverable.status !== updated.status) {
+      addNotification({
+        type: "status_change",
+        title: "Status Changed",
+        message: `${updated.name} status changed to ${updated.status}`,
+        deliverableId: updated.id,
+        campaignId: updated.campaignId,
+      });
+    }
+    
+    // Check for new files (revision)
+    if (updated.files.length > 0 && oldDeliverable && 
+        JSON.stringify(updated.files) !== JSON.stringify(oldDeliverable.files)) {
+      addNotification({
+        type: "revision",
+        title: "Content Revised",
+        message: `Content revised for ${updated.name}`,
+        deliverableId: updated.id,
+        campaignId: updated.campaignId,
+      });
+    }
+  };
+
+  const handleEditDeliverable = (deliverable: Deliverable) => {
+    setEditingDeliverable(deliverable);
+    setShowEditDeliverable(true);
+  };
+
+  const addNotification = (notification: Omit<Notification, "id" | "read" | "createdAt">) => {
+    const newNotification: Notification = {
+      ...notification,
+      id: Date.now().toString(),
+      read: false,
+      createdAt: new Date().toISOString(),
+    };
+    setNotifications((prev) => [newNotification, ...prev]);
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    const deliverable = deliverables.find((d) => d.id === notification.deliverableId);
+    if (deliverable) {
+      setActiveView("deliverables");
+      setTimeout(() => {
+        const element = document.getElementById(`deliverable-${deliverable.id}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 100);
+    }
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
+
+  // Track comment IDs we've already notified about
+  const [notifiedCommentIds, setNotifiedCommentIds] = useState<Set<string>>(new Set());
+
+  // Monitor for new comments from brand users
+  useEffect(() => {
+    const newCommentIds: string[] = [];
+    
+    deliverables.forEach((deliverable) => {
+      deliverable.comments.forEach((comment) => {
+        // Check if this comment is from a brand user and we haven't notified about it
+        if (
+          (comment.author.includes("Brand") || comment.author.includes("brand")) &&
+          !notifiedCommentIds.has(comment.id)
+        ) {
+          const newNotification: Notification = {
+            type: "new_comment",
+            title: "New Comment",
+            message: `New comment on ${deliverable.name} by ${comment.author}`,
+            deliverableId: deliverable.id,
+            campaignId: deliverable.campaignId,
+            id: Date.now().toString(),
+            read: false,
+            createdAt: new Date().toISOString(),
+          };
+          setNotifications((prev) => [newNotification, ...prev]);
+          newCommentIds.push(comment.id);
+        }
+      });
+    });
+    
+    if (newCommentIds.length > 0) {
+      setNotifiedCommentIds((prev) => new Set([...prev, ...newCommentIds]));
+    }
+  }, [deliverables, notifiedCommentIds]);
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -78,6 +198,11 @@ export default function AdminDashboard() {
               <p className="text-gray-600 font-medium">Manage brands, campaigns, and deliverables</p>
             </div>
             <div className="flex items-center gap-3">
+              <NotificationBar
+                notifications={notifications}
+                onNotificationClick={handleNotificationClick}
+                onMarkAsRead={handleMarkAsRead}
+              />
               <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -271,10 +396,22 @@ export default function AdminDashboard() {
                 <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Create Deliverable
+                Add Deliverable
               </button>
             </div>
-            <DeliverablesTable deliverables={deliverables} />
+            {showCreateDeliverable ? (
+              <ExcelDeliverablesTable
+                campaigns={campaigns}
+                onSave={handleCreateDeliverables}
+                onCancel={() => setShowCreateDeliverable(false)}
+              />
+            ) : (
+              <DeliverablesTable
+                deliverables={deliverables}
+                onEdit={handleEditDeliverable}
+                showComments={true}
+              />
+            )}
           </div>
         )}
 
@@ -306,16 +443,23 @@ export default function AdminDashboard() {
         </Modal>
 
         <Modal
-          isOpen={showCreateDeliverable}
-          onClose={() => setShowCreateDeliverable(false)}
-          title="Create Deliverable"
+          isOpen={showEditDeliverable}
+          onClose={() => {
+            setShowEditDeliverable(false);
+            setEditingDeliverable(null);
+          }}
+          title="Edit Deliverable"
         >
-          <CreateDeliverableForm
-            campaigns={campaigns}
-            brands={brands}
-            onSubmit={handleCreateDeliverable}
-            onCancel={() => setShowCreateDeliverable(false)}
-          />
+          {editingDeliverable && (
+            <EditDeliverableForm
+              deliverable={editingDeliverable}
+              onSubmit={handleUpdateDeliverable}
+              onCancel={() => {
+                setShowEditDeliverable(false);
+                setEditingDeliverable(null);
+              }}
+            />
+          )}
         </Modal>
       </div>
     </div>

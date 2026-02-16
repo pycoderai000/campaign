@@ -10,6 +10,7 @@ interface DeliverablesTableProps {
   onCommentAdd?: (id: string, comment: string) => void;
   showEdit?: boolean;
   onEdit?: (deliverable: Deliverable) => void;
+  showComments?: boolean;
 }
 
 export default function DeliverablesTable({
@@ -18,6 +19,7 @@ export default function DeliverablesTable({
   onCommentAdd,
   showEdit = false,
   onEdit,
+  showComments = false,
 }: DeliverablesTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [showMetrics, setShowMetrics] = useState<string | null>(null);
@@ -84,7 +86,7 @@ export default function DeliverablesTable({
             ) : (
               deliverables.map((deliverable) => (
                 <>
-                  <tr key={deliverable.id} className="hover:bg-indigo-50/50 transition-colors duration-150">
+                  <tr key={deliverable.id} id={`deliverable-${deliverable.id}`} className="hover:bg-indigo-50/50 transition-colors duration-150">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center">
@@ -229,27 +231,36 @@ export default function DeliverablesTable({
                               </button>
                             </div>
                           )}
-                          <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
-                            <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                              <span>💬</span> Comments
-                            </h4>
-                            <div className="space-y-3 mb-4">
-                              {deliverable.comments.length === 0 ? (
-                                <p className="text-gray-400 text-sm">No comments yet</p>
-                              ) : (
-                                deliverable.comments.map((comment) => (
-                                  <div
-                                    key={comment.id}
-                                    className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm"
-                                  >
-                                    <p className="text-sm text-gray-700 mb-2">{comment.text}</p>
-                                    <p className="text-xs text-gray-500">
-                                      {comment.author} • {new Date(comment.createdAt).toLocaleString()}
-                                    </p>
-                                  </div>
-                                ))
-                              )}
-                            </div>
+                          {(showComments || onCommentAdd) && (
+                            <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
+                              <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                <span>💬</span> Comments {showComments && deliverable.comments.length > 0 && (
+                                  <span className="ml-2 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">
+                                    {deliverable.comments.length}
+                                  </span>
+                                )}
+                              </h4>
+                              <div className="space-y-3 mb-4">
+                                {deliverable.comments.length === 0 ? (
+                                  <p className="text-gray-400 text-sm">No comments yet</p>
+                                ) : (
+                                  deliverable.comments.map((comment) => (
+                                    <div
+                                      key={comment.id}
+                                      className={`bg-white p-4 rounded-xl border shadow-sm ${
+                                        comment.author.toLowerCase().includes("brand") 
+                                          ? "border-yellow-300 bg-yellow-50/50" 
+                                          : "border-gray-200"
+                                      }`}
+                                    >
+                                      <p className="text-sm text-gray-700 mb-2">{comment.text}</p>
+                                      <p className="text-xs text-gray-500">
+                                        {comment.author} • {new Date(comment.createdAt).toLocaleString()}
+                                      </p>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
                             {onCommentAdd && (
                               <div className="flex gap-2">
                                 <input
@@ -283,7 +294,8 @@ export default function DeliverablesTable({
                                 </button>
                               </div>
                             )}
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>

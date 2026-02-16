@@ -6,6 +6,12 @@ export interface Brand {
   poc: string;
   email: string;
   contactNumber: string;
+  instagramLink?: string;
+  instagramHandle?: string;
+  youtubeLink?: string;
+  youtubeHandle?: string;
+  tiktokLink?: string;
+  tiktokHandle?: string;
   createdAt: string;
 }
 
@@ -29,11 +35,30 @@ export type DeliverableStatus =
   | "Live"
   | "Cancelled";
 
+export type FileOrUrl = File | string;
+
+export interface ContentVersion {
+  id: string;
+  files: FileOrUrl[];
+  uploadedAt: string;
+  uploadedBy: string;
+  revisionNote?: string;
+}
+
+export interface Revision {
+  id: string;
+  deliverableId: string;
+  revisionNote: string;
+  requestedBy: string;
+  requestedAt: string;
+  files?: FileOrUrl[];
+}
+
 export interface Deliverable {
   id: string;
   name: string;
   postType: PostType;
-  files: File[];
+  files: FileOrUrl[];
   caption: string;
   postingDate: string;
   postingTime: string;
@@ -45,6 +70,8 @@ export interface Deliverable {
   status: DeliverableStatus;
   comments: Comment[];
   createdAt: string;
+  contentHistory?: ContentVersion[];
+  revisions?: Revision[];
 }
 
 export interface Comment {
@@ -72,5 +99,23 @@ export interface CampaignMetrics {
   comments: number;
   engagement: number;
   date: string;
+}
+
+export interface Notification {
+  id: string;
+  type: "new_content" | "status_change" | "new_comment" | "revision";
+  title: string;
+  message: string;
+  deliverableId: string;
+  campaignId?: string;
+  createdAt: string;
+  read: boolean;
+}
+
+export interface SocialMediaMetrics {
+  followers: { month: string; count: number }[];
+  engagementGrowth: { month: string; growth: number }[];
+  totalFollowers: number;
+  engagementRate: number;
 }
 
