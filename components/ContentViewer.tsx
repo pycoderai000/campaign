@@ -56,7 +56,7 @@ export default function ContentViewer({
   const getFileType = (file: FileOrUrl): string => {
     if (typeof file === "string") {
       // Try to determine from URL extension
-      if (file.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return "image";
+      if (file.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) return "image";
       if (file.match(/\.(mp4|webm|ogg)$/i)) return "video";
       return "image"; // Default
     }

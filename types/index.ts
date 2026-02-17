@@ -113,9 +113,28 @@ export interface Notification {
 }
 
 export interface SocialMediaMetrics {
-  followers: { month: string; count: number }[];
-  engagementGrowth: { month: string; growth: number }[];
-  totalFollowers: number;
-  engagementRate: number;
+  instagram?: {
+    followers: { month: string; count: number }[];
+    engagementGrowth: { month: string; growth: number }[];
+    totalFollowers: number;
+    engagementRate: number;
+  };
+  youtube?: {
+    followers: { month: string; count: number }[];
+    engagementGrowth: { month: string; growth: number }[];
+    totalFollowers: number;
+    engagementRate: number;
+  };
+  tiktok?: {
+    followers: { month: string; count: number }[];
+    engagementGrowth: { month: string; growth: number }[];
+    totalFollowers: number;
+    engagementRate: number;
+  };
+  // Legacy support
+  followers?: { month: string; count: number }[];
+  engagementGrowth?: { month: string; growth: number }[];
+  totalFollowers?: number;
+  engagementRate?: number;
 }
 

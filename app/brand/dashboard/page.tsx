@@ -5,6 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import BrandDeliverablesTable from "@/components/BrandDeliverablesTable";
 import CampaignMetrics from "@/components/CampaignMetrics";
 import SocialMediaMetrics from "@/components/SocialMediaMetrics";
+import ContentCalendar from "@/components/ContentCalendar";
 import NotificationBar from "@/components/NotificationBar";
 import Modal from "@/components/Modal";
 import BrandEditDeliverableForm from "@/components/BrandEditDeliverableForm";
@@ -19,7 +20,7 @@ import type {
 } from "@/types";
 
 export default function BrandDashboard() {
-  const [activeView, setActiveView] = useState<"campaigns" | "metrics" | "social">("campaigns");
+  const [activeView, setActiveView] = useState<"campaigns" | "metrics" | "social" | "calendar">("campaigns");
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   const [showEditDeliverable, setShowEditDeliverable] = useState(false);
   const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null);
@@ -50,7 +51,7 @@ export default function BrandDashboard() {
       id: "1",
       name: "Deliverable 1",
       postType: "Static",
-      files: [new File([], "image1.jpg", { type: "image/jpeg" })],
+      files: ["/mock/image1.svg"],
       caption: "Sample caption for deliverable 1",
       postingDate: "2024-01-15",
       postingTime: "10:00",
@@ -64,27 +65,127 @@ export default function BrandDashboard() {
       contentHistory: [],
       revisions: [],
     },
+    {
+      id: "2",
+      name: "Deliverable 2 - Video",
+      postType: "Video post",
+      // Public, lightweight sample video for dev/testing (ensures the player actually plays)
+      files: ["https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"],
+      caption: "This is a video deliverable for testing",
+      postingDate: new Date().toISOString().split('T')[0], // Today's date
+      postingTime: "14:30",
+      campaignId: "1",
+      campaignName: "Campaign 1",
+      brandId: "brand1",
+      brandName: "Brand 1",
+      status: "Approved",
+      comments: [],
+      createdAt: new Date().toISOString(),
+      contentHistory: [],
+      revisions: [],
+    },
+    {
+      id: "3",
+      name: "Deliverable 3 - Live",
+      postType: "Carousel",
+      files: [
+        "/mock/image2.svg",
+        "/mock/image3.svg",
+      ],
+      caption: "Carousel post with multiple images",
+      postingDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
+      postingTime: "09:00",
+      campaignId: "1",
+      campaignName: "Campaign 1",
+      brandId: "brand1",
+      brandName: "Brand 1",
+      status: "Live",
+      comments: [],
+      createdAt: new Date().toISOString(),
+      contentHistory: [],
+      revisions: [],
+    },
+    {
+      id: "4",
+      name: "Deliverable 4 - Revision",
+      postType: "Static",
+      files: ["/mock/image4.svg"],
+      caption: "This deliverable is in revision",
+      postingDate: new Date(Date.now() + 172800000).toISOString().split('T')[0], // Day after tomorrow
+      postingTime: "16:00",
+      campaignId: "1",
+      campaignName: "Campaign 1",
+      brandId: "brand1",
+      brandName: "Brand 1",
+      status: "In revision",
+      comments: [],
+      createdAt: new Date().toISOString(),
+      contentHistory: [],
+      revisions: [],
+    },
   ]);
 
   const [socialMetrics] = useState<SocialMediaMetricsType>({
-    followers: [
-      { month: "Jan", count: 10000 },
-      { month: "Feb", count: 12000 },
-      { month: "Mar", count: 15000 },
-      { month: "Apr", count: 18000 },
-      { month: "May", count: 22000 },
-      { month: "Jun", count: 25000 },
-    ],
-    engagementGrowth: [
-      { month: "Jan", growth: 2.5 },
-      { month: "Feb", growth: 3.2 },
-      { month: "Mar", growth: 3.8 },
-      { month: "Apr", growth: 4.1 },
-      { month: "May", growth: 4.5 },
-      { month: "Jun", growth: 5.2 },
-    ],
-    totalFollowers: 25000,
-    engagementRate: 5.2,
+    instagram: {
+      followers: [
+        { month: "Jan", count: 10000 },
+        { month: "Feb", count: 12000 },
+        { month: "Mar", count: 15000 },
+        { month: "Apr", count: 18000 },
+        { month: "May", count: 22000 },
+        { month: "Jun", count: 25000 },
+      ],
+      engagementGrowth: [
+        { month: "Jan", growth: 2.5 },
+        { month: "Feb", growth: 3.2 },
+        { month: "Mar", growth: 3.8 },
+        { month: "Apr", growth: 4.1 },
+        { month: "May", growth: 4.5 },
+        { month: "Jun", growth: 5.2 },
+      ],
+      totalFollowers: 25000,
+      engagementRate: 5.2,
+    },
+    youtube: {
+      followers: [
+        { month: "Jan", count: 5000 },
+        { month: "Feb", count: 6000 },
+        { month: "Mar", count: 7500 },
+        { month: "Apr", count: 9000 },
+        { month: "May", count: 11000 },
+        { month: "Jun", count: 13000 },
+      ],
+      engagementGrowth: [
+        { month: "Jan", growth: 1.8 },
+        { month: "Feb", growth: 2.1 },
+        { month: "Mar", growth: 2.5 },
+        { month: "Apr", growth: 2.8 },
+        { month: "May", growth: 3.2 },
+        { month: "Jun", growth: 3.6 },
+      ],
+      totalFollowers: 13000,
+      engagementRate: 3.6,
+    },
+    tiktok: {
+      followers: [
+        { month: "Jan", count: 8000 },
+        { month: "Feb", count: 10000 },
+        { month: "Mar", count: 12000 },
+        { month: "Apr", count: 15000 },
+        { month: "May", count: 18000 },
+        { month: "Jun", count: 20000 },
+      ],
+      engagementGrowth: [
+        { month: "Jan", growth: 3.0 },
+        { month: "Feb", growth: 3.5 },
+        { month: "Mar", growth: 4.0 },
+        { month: "Apr", growth: 4.5 },
+        { month: "May", growth: 5.0 },
+        { month: "Jun", growth: 5.5 },
+      ],
+      totalFollowers: 20000,
+      engagementRate: 5.5,
+    },
   });
 
   const handleStatusChange = (id: string, status: DeliverableStatus) => {
@@ -245,6 +346,7 @@ export default function BrandDashboard() {
     { label: "Campaigns", href: "#", onClick: () => setActiveView("campaigns"), viewKey: "campaigns" },
     { label: "Metrics", href: "#", onClick: () => setActiveView("metrics"), viewKey: "metrics" },
     { label: "Social Media Metrics", href: "#", onClick: () => setActiveView("social"), viewKey: "social" },
+    { label: "Content Calendar", href: "#", onClick: () => setActiveView("calendar"), viewKey: "calendar" },
   ];
 
   // Initialize with mock notifications
@@ -389,6 +491,33 @@ export default function BrandDashboard() {
         {activeView === "social" && (
           <div>
             <SocialMediaMetrics metrics={socialMetrics} />
+          </div>
+        )}
+
+        {activeView === "calendar" && (
+          <div>
+            {selectedCampaign ? (
+              <ContentCalendar
+                deliverables={deliverables.filter((d) => d.campaignId === selectedCampaign)}
+                campaignName={campaigns.find((c) => c.id === selectedCampaign)?.name || "Selected Campaign"}
+              />
+            ) : (
+              <div className="bg-white/80 backdrop-blur-sm p-16 rounded-2xl shadow-soft text-center border border-gray-200">
+                <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p className="text-gray-600 text-lg font-semibold mb-2">Select a Campaign</p>
+                <p className="text-gray-400 text-sm">Choose a campaign from the Campaigns view to see its content calendar</p>
+                <button
+                  onClick={() => setActiveView("campaigns")}
+                  className="mt-4 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg font-semibold"
+                >
+                  Go to Campaigns
+                </button>
+              </div>
+            )}
           </div>
         )}
 

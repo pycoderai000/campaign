@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#EEF2FF"/>
+      <stop offset="1" stop-color="#F5F3FF"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#A855F7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <rect x="80" y="80" width="1040" height="640" rx="40" fill="white" opacity="0.9"/>
+  <rect x="140" y="140" width="320" height="120" rx="28" fill="url(#card)"/>
+  <text x="180" y="210" font-family="Inter, ui-sans-serif, system-ui" font-size="46" font-weight="800" fill="white">Mock Image 1</text>
+  <text x="140" y="330" font-family="Inter, ui-sans-serif, system-ui" font-size="34" font-weight="700" fill="#0F172A">Static Creative</text>
+  <text x="140" y="385" font-family="Inter, ui-sans-serif, system-ui" font-size="24" fill="#475569">Used to validate thumbnails and modals</text>
+  <g opacity="0.9">
+    <circle cx="980" cy="230" r="88" fill="#E0E7FF"/>
+    <path d="M950 260l40-60 40 60z" fill="#6366F1"/>
+    <rect x="920" y="290" width="120" height="18" rx="9" fill="#94A3B8"/>
+  </g>
+</svg>
+
+

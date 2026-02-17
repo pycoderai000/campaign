@@ -37,8 +37,18 @@ export default function BrandDeliverablesTable({
   const getThumbnail = (deliverable: Deliverable): string | null => {
     if (deliverable.files.length === 0) return null;
     const firstFile: FileOrUrl = deliverable.files[0];
+    
+    // If it's a video post, don't try to use video URL as image thumbnail
+    if (deliverable.postType === "Video post") {
+      return null; // Will show video placeholder icon
+    }
+    
     if (typeof firstFile === "string") {
-      return firstFile; // Already a URL
+      // Check if it's a video URL
+      if (firstFile.includes('.mp4') || firstFile.includes('.webm') || firstFile.includes('.mov') || firstFile.includes('video')) {
+        return null; // Video URL, show placeholder
+      }
+      return firstFile; // Image URL
     }
     if (firstFile instanceof File && firstFile.type.startsWith("image/")) {
       return URL.createObjectURL(firstFile);
@@ -182,6 +192,22 @@ export default function BrandDeliverablesTable({
                         <tr>
                           <td colSpan={6} className="px-6 py-6 bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
                             <div className="space-y-6">
+                              {/* Video/Content Player for Details */}
+                              {deliverable.postType === "Video post" && deliverable.files.length > 0 && (
+                                <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
+                                  <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                    <span>🎥</span> Video Content
+                                  </h4>
+                                  <div className="relative bg-black rounded-lg overflow-hidden">
+                                    <video
+                                      src={typeof deliverable.files[0] === "string" ? deliverable.files[0] : URL.createObjectURL(deliverable.files[0])}
+                                      controls
+                                      className="w-full h-auto max-h-[400px]"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              
                               <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
                                 <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
                                   <span>📝</span> Caption
@@ -313,11 +339,32 @@ export default function BrandDeliverablesTable({
         title={viewingDeliverable?.name || "Content Viewer"}
       >
         {viewingDeliverable && (
-          <ContentViewer
-            files={viewingDeliverable.files}
-            postType={viewingDeliverable.postType}
-            contentHistory={viewingDeliverable.contentHistory}
-          />
+          <div className="space-y-4">
+            <ContentViewer
+              files={viewingDeliverable.files}
+              postType={viewingDeliverable.postType}
+              contentHistory={viewingDeliverable.contentHistory}
+            />
+            {/* Caption and Posting Date */}
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-4 sm:p-6 rounded-xl border border-indigo-200">
+              <div className="space-y-3">
+                <div>
+                  <h4 className="text-sm sm:text-base font-bold text-gray-700 mb-2 flex items-center gap-2">
+                    <span>📝</span> Caption
+                  </h4>
+                  <p className="text-sm sm:text-base text-gray-800 leading-relaxed">{viewingDeliverable.caption}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm sm:text-base font-bold text-gray-700 mb-2 flex items-center gap-2">
+                    <span>📅</span> Posting Date & Time
+                  </h4>
+                  <p className="text-sm sm:text-base text-gray-800">
+                    {formatDateTime(viewingDeliverable.postingDate, viewingDeliverable.postingTime)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </Modal>
     </>

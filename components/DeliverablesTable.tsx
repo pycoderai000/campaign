@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import PostMetrics from "./PostMetrics";
+import ContentViewer from "./ContentViewer";
+import Modal from "./Modal";
 import type { Deliverable, DeliverableStatus } from "@/types";
 
 interface DeliverablesTableProps {
@@ -24,6 +26,7 @@ export default function DeliverablesTable({
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [showMetrics, setShowMetrics] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
+  const [viewingDeliverable, setViewingDeliverable] = useState<Deliverable | null>(null);
 
   const getStatusColor = (status: DeliverableStatus) => {
     const colors: Record<DeliverableStatus, string> = {
@@ -126,12 +129,20 @@ export default function DeliverablesTable({
                       <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
                         <button
                           onClick={() => {
-                            setExpandedRow(expandedRow === deliverable.id ? null : deliverable.id);
-                            setShowMetrics(null);
+                            setViewingDeliverable(deliverable);
                           }}
                           className="px-2 sm:px-3 py-1 sm:py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-200 transition-colors"
                         >
-                          {expandedRow === deliverable.id ? "Hide" : "View"}
+                          View
+                        </button>
+                        <button
+                          onClick={() => {
+                            setExpandedRow(expandedRow === deliverable.id ? null : deliverable.id);
+                            setShowMetrics(null);
+                          }}
+                          className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors"
+                        >
+                          {expandedRow === deliverable.id ? "Hide" : "Details"}
                         </button>
                         {showEdit && onEdit && (
                           <button
@@ -167,18 +178,13 @@ export default function DeliverablesTable({
                           {deliverable.files.length > 0 && (
                             <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
                               <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                <span>📎</span> Files
+                                <span>📎</span> Content
                               </h4>
-                              <div className="flex gap-2 flex-wrap">
-                                {deliverable.files.map((file, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-semibold border border-indigo-200"
-                                  >
-                                    {typeof file === "string" ? file.split("/").pop() || "File" : file.name}
-                                  </span>
-                                ))}
-                              </div>
+                              <ContentViewer
+                                files={deliverable.files}
+                                postType={deliverable.postType}
+                                contentHistory={deliverable.contentHistory}
+                              />
                             </div>
                           )}
                           {deliverable.liveLink && (
@@ -319,6 +325,41 @@ export default function DeliverablesTable({
         </table>
         </div>
       </div>
+
+      {/* View Modal */}
+      {viewingDeliverable && (
+        <Modal
+          isOpen={!!viewingDeliverable}
+          onClose={() => setViewingDeliverable(null)}
+          title={viewingDeliverable.name}
+        >
+          <div className="space-y-6">
+            <ContentViewer
+              files={viewingDeliverable.files}
+              postType={viewingDeliverable.postType}
+              contentHistory={viewingDeliverable.contentHistory}
+            />
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-4 sm:p-6 rounded-xl border border-indigo-100">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2 text-sm sm:text-base">
+                    <span>📝</span> Caption
+                  </h4>
+                  <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{viewingDeliverable.caption}</p>
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2 text-sm sm:text-base">
+                    <span>📅</span> Posting Date & Time
+                  </h4>
+                  <p className="text-gray-700 text-sm sm:text-base">
+                    {formatDateTime(viewingDeliverable.postingDate, viewingDeliverable.postingTime)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

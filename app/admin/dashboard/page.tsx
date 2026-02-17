@@ -11,10 +11,12 @@ import DeliverablesTable from "@/components/DeliverablesTable";
 import CampaignMetrics from "@/components/CampaignMetrics";
 import ContentViewer from "@/components/ContentViewer";
 import EditDeliverableForm from "@/components/EditDeliverableForm";
+import ContentCalendar from "@/components/ContentCalendar";
 import type { Brand, Campaign, Deliverable, Notification, DeliverableStatus } from "@/types";
 
 export default function AdminDashboard() {
-  const [activeView, setActiveView] = useState<"brands" | "campaigns" | "deliverables" | "metrics">("brands");
+  const [activeView, setActiveView] = useState<"brands" | "campaigns" | "deliverables" | "metrics" | "calendar">("brands");
+  const [selectedCampaignForCalendar, setSelectedCampaignForCalendar] = useState<Campaign | null>(null);
   const [showCreateBrand, setShowCreateBrand] = useState(false);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [showCreateDeliverable, setShowCreateDeliverable] = useState(false);
@@ -26,14 +28,101 @@ export default function AdminDashboard() {
   const [brands, setBrands] = useState<Brand[]>([
     { id: "1", name: "Brand 1", poc: "John Doe", email: "john@brand1.com", contactNumber: "1234567890", createdAt: new Date().toISOString() },
   ]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([
+    {
+      id: "1",
+      name: "Campaign 1",
+      type: "Instagram",
+      brandId: "1",
+      brandName: "Brand 1",
+      createdAt: new Date().toISOString(),
+    },
+  ]);
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([
+    {
+      id: "1",
+      name: "Deliverable 1",
+      postType: "Static",
+      files: ["/mock/image1.svg"],
+      caption: "Sample caption for deliverable 1",
+      postingDate: "2026-02-17",
+      postingTime: "10:00",
+      campaignId: "1",
+      campaignName: "Campaign 1",
+      brandId: "1",
+      brandName: "Brand 1",
+      status: "New content",
+      comments: [],
+      createdAt: new Date().toISOString(),
+      contentHistory: [],
+      revisions: [],
+    },
+    {
+      id: "2",
+      name: "Deliverable 2 - Video",
+      postType: "Video post",
+      // Public, lightweight sample video for dev/testing (ensures the player actually plays)
+      files: ["https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"],
+      caption: "This is a video deliverable for testing",
+      postingDate: "2026-02-18",
+      postingTime: "14:30",
+      campaignId: "1",
+      campaignName: "Campaign 1",
+      brandId: "1",
+      brandName: "Brand 1",
+      status: "Approved",
+      comments: [],
+      createdAt: new Date().toISOString(),
+      contentHistory: [],
+      revisions: [],
+    },
+    {
+      id: "3",
+      name: "Deliverable 3 - Live",
+      postType: "Carousel",
+      files: [
+        "/mock/image2.svg",
+        "/mock/image3.svg",
+      ],
+      caption: "Carousel content going live soon!",
+      postingDate: "2026-02-19",
+      postingTime: "09:00",
+      campaignId: "1",
+      campaignName: "Campaign 1",
+      brandId: "1",
+      brandName: "Brand 1",
+      status: "Live",
+      comments: [],
+      createdAt: new Date().toISOString(),
+      contentHistory: [],
+      revisions: [],
+    },
+    {
+      id: "4",
+      name: "Deliverable 4 - Revision",
+      postType: "Static",
+      files: ["/mock/image4.svg"],
+      caption: "Content needs revision based on feedback.",
+      postingDate: "2026-02-20",
+      postingTime: "16:00",
+      campaignId: "1",
+      campaignName: "Campaign 1",
+      brandId: "1",
+      brandName: "Brand 1",
+      status: "In revision",
+      comments: [],
+      createdAt: new Date().toISOString(),
+      contentHistory: [],
+      revisions: [],
+    },
+  ]);
 
   const sidebarItems = [
     { label: "Brands", href: "#", onClick: () => setActiveView("brands"), viewKey: "brands" },
     { label: "Campaigns", href: "#", onClick: () => setActiveView("campaigns"), viewKey: "campaigns" },
     { label: "Deliverables", href: "#", onClick: () => setActiveView("deliverables"), viewKey: "deliverables" },
     { label: "Metrics", href: "#", onClick: () => setActiveView("metrics"), viewKey: "metrics" },
+    { label: "Content Calendar", href: "#", onClick: () => setActiveView("calendar"), viewKey: "calendar" },
   ];
 
   const handleCreateBrand = (brandData: Omit<Brand, "id" | "createdAt">) => {
@@ -422,6 +511,57 @@ export default function AdminDashboard() {
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-4 sm:mb-6">Campaign Metrics</h2>
             <CampaignMetrics campaigns={campaigns} deliverables={deliverables} />
+          </div>
+        )}
+
+        {activeView === "calendar" && (
+          <div>
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-800">Content Calendar</h2>
+              {campaigns.length > 0 && (
+                <select
+                  value={selectedCampaignForCalendar?.id || ""}
+                  onChange={(e) => {
+                    const campaign = campaigns.find((c) => c.id === e.target.value);
+                    setSelectedCampaignForCalendar(campaign || null);
+                  }}
+                  className="px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white font-semibold text-sm sm:text-base"
+                >
+                  <option value="">Select a Campaign</option>
+                  {campaigns.map((campaign) => (
+                    <option key={campaign.id} value={campaign.id}>
+                      {campaign.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            {selectedCampaignForCalendar ? (
+              <ContentCalendar
+                deliverables={deliverables.filter((d) => d.campaignId === selectedCampaignForCalendar.id)}
+                campaignName={selectedCampaignForCalendar.name}
+              />
+            ) : campaigns.length === 0 ? (
+              <div className="bg-white/80 backdrop-blur-sm p-16 rounded-2xl shadow-soft text-center border border-gray-200">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <p className="text-gray-600 text-lg font-semibold mb-2">No campaigns yet</p>
+                <p className="text-gray-400">Create a campaign first to view the content calendar</p>
+              </div>
+            ) : (
+              <div className="bg-white/80 backdrop-blur-sm p-16 rounded-2xl shadow-soft text-center border border-gray-200">
+                <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p className="text-gray-600 text-lg font-semibold mb-2">Select a Campaign</p>
+                <p className="text-gray-400">Choose a campaign from the dropdown above to view its content calendar</p>
+              </div>
+            )}
           </div>
         )}
 

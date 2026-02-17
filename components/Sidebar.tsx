@@ -20,6 +20,7 @@ export default function Sidebar({ role, items, activeView }: SidebarProps) {
       "Deliverables": "📦",
       "Metrics": "📈",
       "Social Media Metrics": "📱",
+      "Content Calendar": "📅",
     };
     return icons[label] || "•";
   };

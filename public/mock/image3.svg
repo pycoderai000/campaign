@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF7ED"/>
+      <stop offset="1" stop-color="#FDF2F8"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F97316"/>
+      <stop offset="1" stop-color="#EC4899"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <rect x="90" y="90" width="1020" height="620" rx="44" fill="white" opacity="0.92"/>
+  <rect x="150" y="150" width="430" height="120" rx="28" fill="url(#accent)"/>
+  <text x="190" y="220" font-family="Inter, ui-sans-serif, system-ui" font-size="46" font-weight="800" fill="white">Mock Image 3</text>
+  <text x="150" y="340" font-family="Inter, ui-sans-serif, system-ui" font-size="34" font-weight="700" fill="#0F172A">Carousel Slide B</text>
+  <text x="150" y="395" font-family="Inter, ui-sans-serif, system-ui" font-size="24" fill="#475569">Second slide for swipe/next/prev</text>
+  <g opacity="0.95">
+    <circle cx="950" cy="270" r="120" fill="#FFE4E6"/>
+    <path d="M910 270a40 40 0 1180 0a40 40 0 11-80 0z" fill="#FB7185"/>
+    <rect x="860" y="420" width="240" height="18" rx="9" fill="#CBD5E1"/>
+  </g>
+</svg>
+
+
