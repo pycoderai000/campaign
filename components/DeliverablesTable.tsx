@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PostMetrics from "./PostMetrics";
 import ContentViewer from "./ContentViewer";
 import Modal from "./Modal";
 import type { Deliverable, DeliverableStatus } from "@/types";
+import { api } from "@/lib/api";
 
 interface DeliverablesTableProps {
   deliverables: Deliverable[];
@@ -24,9 +25,20 @@ export default function DeliverablesTable({
   showComments = false,
 }: DeliverablesTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [detailCache, setDetailCache] = useState<Record<string, Deliverable>>({});
   const [showMetrics, setShowMetrics] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [viewingDeliverable, setViewingDeliverable] = useState<Deliverable | null>(null);
+
+  useEffect(() => {
+    if (!expandedRow) return;
+    if (detailCache[expandedRow]) return;
+    let cancelled = false;
+    api.get<Deliverable>(`/api/deliverables/${expandedRow}`).then((full) => {
+      if (!cancelled) setDetailCache((c) => ({ ...c, [expandedRow]: full }));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [expandedRow]);
 
   const getStatusColor = (status: DeliverableStatus) => {
     const colors: Record<DeliverableStatus, string> = {
@@ -165,7 +177,9 @@ export default function DeliverablesTable({
                       </div>
                     </td>
                   </tr>
-                  {expandedRow === deliverable.id && (
+                  {expandedRow === deliverable.id && (() => {
+                    const display = detailCache[deliverable.id] || deliverable;
+                    return (
                     <tr>
                       <td colSpan={7} className="px-6 py-6 bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
                         <div className="space-y-6">
@@ -173,21 +187,21 @@ export default function DeliverablesTable({
                             <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
                               <span>📝</span> Caption
                             </h4>
-                            <p className="text-gray-700 leading-relaxed">{deliverable.caption}</p>
+                            <p className="text-gray-700 leading-relaxed">{display.caption}</p>
                           </div>
-                          {deliverable.files.length > 0 && (
+                          {display.files.length > 0 && (
                             <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
                               <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                                 <span>📎</span> Content
                               </h4>
                               <ContentViewer
-                                files={deliverable.files}
-                                postType={deliverable.postType}
-                                contentHistory={deliverable.contentHistory}
+                                files={display.files}
+                                postType={display.postType}
+                                contentHistory={display.contentHistory}
                               />
                             </div>
                           )}
-                          {deliverable.liveLink && (
+                          {display.liveLink && (
                             <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
                               <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
                                 <span>🔗</span> Live Link
@@ -198,7 +212,7 @@ export default function DeliverablesTable({
                                 rel="noopener noreferrer"
                                 className="text-indigo-600 hover:text-indigo-700 font-semibold hover:underline flex items-center gap-2"
                               >
-                                {deliverable.liveLink}
+                                {display.liveLink}
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                 </svg>
@@ -211,10 +225,10 @@ export default function DeliverablesTable({
                                 <span>🔄</span> Change Status
                               </h4>
                               <select
-                                value={deliverable.status}
+                                value={display.status}
                                 onChange={(e) =>
                                   onStatusChange(
-                                    deliverable.id,
+                                    display.id,
                                     e.target.value as DeliverableStatus
                                   )
                                 }
@@ -245,17 +259,17 @@ export default function DeliverablesTable({
                           {(showComments || onCommentAdd) && (
                             <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
                               <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                <span>💬</span> Comments {showComments && deliverable.comments.length > 0 && (
+                                <span>💬</span> Comments {showComments && display.comments.length > 0 && (
                                   <span className="ml-2 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">
-                                    {deliverable.comments.length}
+                                    {display.comments.length}
                                   </span>
                                 )}
                               </h4>
                               <div className="space-y-3 mb-4">
-                                {deliverable.comments.length === 0 ? (
+                                {display.comments.length === 0 ? (
                                   <p className="text-gray-400 text-sm">No comments yet</p>
                                 ) : (
-                                  deliverable.comments.map((comment) => (
+                                  display.comments.map((comment) => (
                                     <div
                                       key={comment.id}
                                       className={`bg-white p-4 rounded-xl border shadow-sm ${
@@ -276,27 +290,27 @@ export default function DeliverablesTable({
                               <div className="flex gap-2">
                                 <input
                                   type="text"
-                                  value={commentText[deliverable.id] || ""}
+                                  value={commentText[display.id] || ""}
                                   onChange={(e) =>
                                     setCommentText({
                                       ...commentText,
-                                      [deliverable.id]: e.target.value,
+                                      [display.id]: e.target.value,
                                     })
                                   }
                                   placeholder="Add a comment..."
                                   className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white"
                                   onKeyPress={(e) => {
-                                    if (e.key === "Enter" && commentText[deliverable.id]) {
-                                      onCommentAdd(deliverable.id, commentText[deliverable.id]);
-                                      setCommentText({ ...commentText, [deliverable.id]: "" });
+                                    if (e.key === "Enter" && commentText[display.id]) {
+                                      onCommentAdd(display.id, commentText[display.id]);
+                                      setCommentText({ ...commentText, [display.id]: "" });
                                     }
                                   }}
                                 />
                                 <button
                                   onClick={() => {
-                                    if (commentText[deliverable.id]) {
-                                      onCommentAdd(deliverable.id, commentText[deliverable.id]);
-                                      setCommentText({ ...commentText, [deliverable.id]: "" });
+                                    if (commentText[display.id]) {
+                                      onCommentAdd(display.id, commentText[display.id]);
+                                      setCommentText({ ...commentText, [display.id]: "" });
                                     }
                                   }}
                                   className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg font-semibold"
@@ -310,7 +324,8 @@ export default function DeliverablesTable({
                         </div>
                       </td>
                     </tr>
-                  )}
+                    );
+                  })()}
                   {showMetrics === deliverable.id && (
                     <tr>
                       <td colSpan={7} className="px-6 py-4 bg-gray-50">
@@ -359,6 +374,12 @@ export default function DeliverablesTable({
             </div>
           </div>
         </Modal>
+      )}
+    </div>
+  );
+}
+
+     </Modal>
       )}
     </div>
   );

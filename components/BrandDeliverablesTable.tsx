@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Modal from "./Modal";
 import ContentViewer from "./ContentViewer";
 import type { Deliverable, DeliverableStatus, FileOrUrl } from "@/types";
-import { getFileDisplayUrl } from "@/lib/api";
+import { getFileDisplayUrl, api } from "@/lib/api";
 
 interface BrandDeliverablesTableProps {
   deliverables: Deliverable[];
@@ -20,9 +20,19 @@ export default function BrandDeliverablesTable({
   onEdit,
 }: BrandDeliverablesTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [detailCache, setDetailCache] = useState<Record<string, Deliverable>>({});
   const [showContentViewer, setShowContentViewer] = useState(false);
   const [viewingDeliverable, setViewingDeliverable] = useState<Deliverable | null>(null);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!expandedRow || detailCache[expandedRow]) return;
+    let cancelled = false;
+    api.get<Deliverable>(`/api/deliverables/${expandedRow}`).then((full) => {
+      if (!cancelled) setDetailCache((c) => ({ ...c, [expandedRow]: full }));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [expandedRow]);
 
   const getStatusColor = (status: DeliverableStatus) => {
     const colors: Record<DeliverableStatus, string> = {
@@ -188,19 +198,21 @@ export default function BrandDeliverablesTable({
                           </div>
                         </td>
                       </tr>
-                      {expandedRow === deliverable.id && (
+                      {expandedRow === deliverable.id && (() => {
+                        const display = detailCache[deliverable.id] || deliverable;
+                        return (
                         <tr>
                           <td colSpan={6} className="px-6 py-6 bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
                             <div className="space-y-6">
                               {/* Video/Content Player for Details */}
-                              {deliverable.postType === "Video post" && deliverable.files.length > 0 && (
+                              {display.postType === "Video post" && display.files.length > 0 && (
                                 <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
                                   <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                                     <span>🎥</span> Video Content
                                   </h4>
                                   <div className="relative bg-black rounded-lg overflow-hidden">
                                     <video
-                                      src={typeof deliverable.files[0] === "string" ? getFileDisplayUrl(deliverable.files[0]) : URL.createObjectURL(deliverable.files[0])}
+                                      src={typeof display.files[0] === "string" ? getFileDisplayUrl(display.files[0]) : URL.createObjectURL(display.files[0])}
                                       controls
                                       className="w-full h-auto max-h-[400px]"
                                     />
@@ -212,7 +224,7 @@ export default function BrandDeliverablesTable({
                                 <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
                                   <span>📝</span> Caption
                                 </h4>
-                                <p className="text-gray-700 leading-relaxed">{deliverable.caption}</p>
+                                <p className="text-gray-700 leading-relaxed">{display.caption}</p>
                               </div>
 
                               {onStatusChange && (
@@ -221,10 +233,10 @@ export default function BrandDeliverablesTable({
                                     <span>🔄</span> Change Status
                                   </h4>
                                   <select
-                                    value={deliverable.status}
+                                    value={display.status}
                                     onChange={(e) =>
                                       onStatusChange(
-                                        deliverable.id,
+                                        display.id,
                                         e.target.value as DeliverableStatus
                                       )
                                     }
@@ -239,7 +251,7 @@ export default function BrandDeliverablesTable({
                                 </div>
                               )}
 
-                              {deliverable.revisions && deliverable.revisions.length > 0 && (
+                              {display.revisions && display.revisions.length > 0 && (
                                 <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
                                   <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                                     <span>📋</span> Revision History
@@ -266,10 +278,10 @@ export default function BrandDeliverablesTable({
                                   <span>💬</span> Comments
                                 </h4>
                                 <div className="space-y-3 mb-4">
-                                  {deliverable.comments.length === 0 ? (
+                                  {display.comments.length === 0 ? (
                                     <p className="text-gray-400 text-sm">No comments yet</p>
                                   ) : (
-                                    deliverable.comments.map((comment) => (
+                                    display.comments.map((comment) => (
                                       <div
                                         key={comment.id}
                                         className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm"
@@ -286,27 +298,27 @@ export default function BrandDeliverablesTable({
                                   <div className="flex gap-2">
                                     <input
                                       type="text"
-                                      value={commentText[deliverable.id] || ""}
+                                      value={commentText[display.id] || ""}
                                       onChange={(e) =>
                                         setCommentText({
                                           ...commentText,
-                                          [deliverable.id]: e.target.value,
+                                          [display.id]: e.target.value,
                                         })
                                       }
                                       placeholder="Add a comment..."
                                       className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all bg-white"
                                       onKeyPress={(e) => {
-                                        if (e.key === "Enter" && commentText[deliverable.id]) {
-                                          onCommentAdd(deliverable.id, commentText[deliverable.id]);
-                                          setCommentText({ ...commentText, [deliverable.id]: "" });
+                                        if (e.key === "Enter" && commentText[display.id]) {
+                                          onCommentAdd(display.id, commentText[display.id]);
+                                          setCommentText({ ...commentText, [display.id]: "" });
                                         }
                                       }}
                                     />
                                     <button
                                       onClick={() => {
-                                        if (commentText[deliverable.id]) {
-                                          onCommentAdd(deliverable.id, commentText[deliverable.id]);
-                                          setCommentText({ ...commentText, [deliverable.id]: "" });
+                                        if (commentText[display.id]) {
+                                          onCommentAdd(display.id, commentText[display.id]);
+                                          setCommentText({ ...commentText, [display.id]: "" });
                                         }
                                       }}
                                       className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg font-semibold"
@@ -319,7 +331,7 @@ export default function BrandDeliverablesTable({
                             </div>
                           </td>
                         </tr>
-                      )}
+                      ); })()}
                     </>
                   );
                 })

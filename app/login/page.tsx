@@ -4,10 +4,13 @@ import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+type LoginType = "admin" | "brand";
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/admin/dashboard";
+  const callbackUrl = searchParams.get("callbackUrl");
+  const [loginType, setLoginType] = useState<LoginType>("admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -30,10 +33,12 @@ function LoginForm() {
       }
       if (res?.ok) {
         const target =
-          callbackUrl.startsWith("/brand")
-            ? "/brand/dashboard"
-            : callbackUrl.startsWith("/admin")
-              ? "/admin/dashboard"
+          callbackUrl && (callbackUrl.startsWith("/brand") || callbackUrl.startsWith("/admin"))
+            ? callbackUrl.startsWith("/brand")
+              ? "/brand/dashboard"
+              : "/admin/dashboard"
+            : loginType === "brand"
+              ? "/brand/dashboard"
               : "/admin/dashboard";
         router.push(target);
         router.refresh();
@@ -62,7 +67,32 @@ function LoginForm() {
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
             Campaign Management
           </h1>
-          <p className="text-sm sm:text-base text-gray-600 font-medium">Sign in to your account</p>
+          <p className="text-sm sm:text-base text-gray-600 font-medium mb-4">Sign in to your account</p>
+
+          <div className="flex rounded-xl bg-gray-100 p-1">
+            <button
+              type="button"
+              onClick={() => setLoginType("admin")}
+              className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
+                loginType === "admin"
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              Admin Login
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginType("brand")}
+              className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
+                loginType === "brand"
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              Brand Login
+            </button>
+          </div>
         </div>
 
         {error && (

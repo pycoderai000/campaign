@@ -131,6 +131,9 @@ export default function BrandDashboard() {
         newFileUrls = urls;
       }
       await api.patch(`/api/deliverables/${data.id}`, {
+        caption: data.caption,
+        postingDate: data.postingDate,
+        postingTime: data.postingTime,
         status: data.status,
         revisionNote: data.revisionNote,
         newFileUrls,
