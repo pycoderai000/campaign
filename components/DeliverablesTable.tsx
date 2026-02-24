@@ -379,9 +379,3 @@ export default function DeliverablesTable({
   );
 }
 
-     </Modal>
-      )}
-    </div>
-  );
-}
-

@@ -257,7 +257,7 @@ export default function BrandDeliverablesTable({
                                     <span>📋</span> Revision History
                                   </h4>
                                   <div className="space-y-3">
-                                    {deliverable.revisions.map((revision) => (
+                                    {display.revisions!.map((revision) => (
                                       <div
                                         key={revision.id}
                                         className="bg-white p-4 rounded-xl border border-gray-200"
