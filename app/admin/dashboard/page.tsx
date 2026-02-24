@@ -33,6 +33,8 @@ export default function AdminDashboard() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [metaInstagramStatus, setMetaInstagramStatus] = useState<{ configured: boolean; hasInstagram: boolean; message: string } | null>(null);
+  const [syncingBrandId, setSyncingBrandId] = useState<string | null>(null);
 
   const fetchBrands = useCallback(async () => {
     try {
@@ -70,16 +72,25 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const fetchMetaInstagramStatus = useCallback(async () => {
+    try {
+      const data = await api.get<{ configured: boolean; hasInstagram: boolean; message: string }>("/api/sync/instagram/status");
+      setMetaInstagramStatus(data);
+    } catch {
+      setMetaInstagramStatus(null);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       setError(null);
-      await Promise.all([fetchBrands(), fetchCampaigns(), fetchDeliverables(), fetchNotifications()]);
+      await Promise.all([fetchBrands(), fetchCampaigns(), fetchDeliverables(), fetchNotifications(), fetchMetaInstagramStatus()]);
       if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [fetchBrands, fetchCampaigns, fetchDeliverables, fetchNotifications]);
+  }, [fetchBrands, fetchCampaigns, fetchDeliverables, fetchNotifications, fetchMetaInstagramStatus]);
 
   const sidebarItems = [
     { label: "Brands", href: "#", onClick: () => setActiveView("brands"), viewKey: "brands" },
@@ -173,6 +184,23 @@ export default function AdminDashboard() {
   const handleEditDeliverable = (deliverable: Deliverable) => {
     setEditingDeliverable(deliverable);
     setShowEditDeliverable(true);
+  };
+
+  const handleSyncInstagram = async (brandId: string) => {
+    if (metaInstagramStatus && !metaInstagramStatus.hasInstagram) {
+      alert(metaInstagramStatus.message);
+      return;
+    }
+    setSyncingBrandId(brandId);
+    try {
+      const res = await api.post<{ ok: boolean; message?: string; followersCount?: number }>("/api/sync/instagram", { brandId });
+      alert(res.message || "Instagram metrics synced.");
+      await fetchMetaInstagramStatus();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Sync failed");
+    } finally {
+      setSyncingBrandId(null);
+    }
   };
 
   const handleNotificationClick = (notification: Notification) => {
@@ -310,6 +338,20 @@ export default function AdminDashboard() {
                           <p className="text-gray-500 text-xs">Contact</p>
                           <p className="text-gray-800 font-semibold">{brand.contactNumber}</p>
                         </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <button
+                          type="button"
+                          onClick={() => handleSyncInstagram(brand.id)}
+                          disabled={!!syncingBrandId || (metaInstagramStatus !== null && !metaInstagramStatus.configured)}
+                          title={metaInstagramStatus && !metaInstagramStatus.hasInstagram ? metaInstagramStatus.message : undefined}
+                          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                          {syncingBrandId === brand.id ? "Syncing…" : "Sync Instagram"}
+                        </button>
+                        {metaInstagramStatus && !metaInstagramStatus.hasInstagram && metaInstagramStatus.configured && (
+                          <p className="mt-2 text-xs text-amber-600 line-clamp-2">{metaInstagramStatus.message}</p>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import MetricsChart from "./MetricsChart";
 import type { Campaign, Deliverable, CampaignMetrics as CampaignMetricsType } from "@/types";
+import { api } from "@/lib/api";
 
 interface CampaignMetricsProps {
   campaigns: Campaign[];
@@ -14,29 +15,48 @@ export default function CampaignMetrics({ campaigns, deliverables }: CampaignMet
   const [selectedMetric, setSelectedMetric] = useState<"impressions" | "reach" | "engagement">(
     "impressions"
   );
+  const [apiMetrics, setApiMetrics] = useState<CampaignMetricsType[]>([]);
 
-  // Mock metrics data - replace with actual API calls
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await api.get<{ campaignId: string; date: string; impressions: number; reach: number; likes: number; comments: number; engagement: number }[]>(
+          "/api/metrics"
+        );
+        if (!cancelled && Array.isArray(data)) {
+          setApiMetrics(
+            data.map((m) => ({
+              campaignId: m.campaignId,
+              date: m.date.length === 10 ? `${m.date}T00:00:00.000Z` : m.date,
+              impressions: m.impressions,
+              reach: m.reach,
+              likes: m.likes,
+              comments: m.comments,
+              engagement: m.engagement,
+            }))
+          );
+        }
+      } catch {
+        if (!cancelled) setApiMetrics([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const mockMetrics: CampaignMetricsType[] = useMemo(() => {
     const metrics: CampaignMetricsType[] = [];
     const today = new Date();
-    
     campaigns.forEach((campaign) => {
-      const campaignDeliverables = deliverables.filter(
-        (d) => d.campaignId === campaign.id
-      );
-      
-      // Generate mock data for the last 30 days, updating every 3 days
+      const campaignDeliverables = deliverables.filter((d) => d.campaignId === campaign.id);
       for (let i = 0; i < 30; i += 3) {
         const date = new Date(today);
         date.setDate(date.getDate() - i);
-        
-        // Aggregate metrics from deliverables
         const impressions = campaignDeliverables.length * (1000 + Math.random() * 5000);
         const reach = impressions * (0.6 + Math.random() * 0.3);
         const likes = reach * (0.1 + Math.random() * 0.2);
         const comments = likes * (0.05 + Math.random() * 0.1);
         const engagement = likes + comments * 2;
-        
         metrics.push({
           campaignId: campaign.id,
           impressions: Math.round(impressions),
@@ -48,15 +68,15 @@ export default function CampaignMetrics({ campaigns, deliverables }: CampaignMet
         });
       }
     });
-    
     return metrics.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [campaigns, deliverables]);
 
+  const metrics = apiMetrics.length > 0 ? apiMetrics : mockMetrics;
+
   const filteredMetrics = useMemo(() => {
     if (selectedCampaign === "all") {
-      // Aggregate all campaigns
       const aggregated: Record<string, CampaignMetricsType> = {};
-      mockMetrics.forEach((metric) => {
+      metrics.forEach((metric) => {
         const date = metric.date.split("T")[0];
         if (!aggregated[date]) {
           aggregated[date] = {
@@ -77,8 +97,8 @@ export default function CampaignMetrics({ campaigns, deliverables }: CampaignMet
       });
       return Object.values(aggregated);
     }
-    return mockMetrics.filter((m) => m.campaignId === selectedCampaign);
-  }, [selectedCampaign, mockMetrics]);
+    return metrics.filter((m) => m.campaignId === selectedCampaign);
+  }, [selectedCampaign, metrics]);
 
   const chartData = useMemo(() => {
     return filteredMetrics.map((metric) => ({

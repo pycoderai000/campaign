@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth";
 import { db, notifications } from "@/lib/db";
 
@@ -10,24 +10,20 @@ export async function GET(request: Request) {
   const limit = Math.min(Number(searchParams.get("limit")) || 50, 100);
   const offset = Number(searchParams.get("offset")) || 0;
 
-  let query = db
+  const conditions = [eq(notifications.userId, user.id)];
+  if (readParam === "true") conditions.push(eq(notifications.read, true));
+  if (readParam === "false") conditions.push(eq(notifications.read, false));
+
+  const rows = await db
     .select()
     .from(notifications)
-    .where(eq(notifications.userId, user.id))
+    .where(and(...conditions))
     .orderBy(desc(notifications.createdAt))
     .limit(limit)
     .offset(offset);
 
-  const rows = await query;
-  const filtered =
-    readParam === "true"
-      ? rows.filter((r) => r.read)
-      : readParam === "false"
-        ? rows.filter((r) => !r.read)
-        : rows;
-
   return NextResponse.json(
-    filtered.map((n) => ({
+    rows.map((n) => ({
       id: n.id,
       type: n.type,
       title: n.title,

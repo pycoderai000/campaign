@@ -206,6 +206,26 @@ export async function PATCH(
         sortOrder: i,
       });
     }
+    // When admin updates files, record as content version (content history)
+    if (user.role === "admin" && data.fileUrls.length > 0) {
+      const [contentVersion] = await db
+        .insert(contentVersions)
+        .values({
+          deliverableId: id,
+          revisionNote: data.revisionNote ?? null,
+          uploadedBy: user.id,
+        })
+        .returning();
+      if (contentVersion) {
+        for (let i = 0; i < data.fileUrls.length; i++) {
+          await db.insert(contentVersionFiles).values({
+            contentVersionId: contentVersion.id,
+            url: data.fileUrls[i],
+            sortOrder: i,
+          });
+        }
+      }
+    }
   }
 
   if (data.revisionNote && data.newFileUrls && data.newFileUrls.length > 0 && user.role === "brand") {

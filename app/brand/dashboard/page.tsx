@@ -17,6 +17,7 @@ import type {
   SocialMediaMetrics as SocialMediaMetricsType,
 } from "@/types";
 import { api, uploadFiles } from "@/lib/api";
+import { defaultSocialMetrics } from "@/lib/social-metrics-defaults";
 
 export default function BrandDashboard() {
   const [activeView, setActiveView] = useState<"campaigns" | "metrics" | "social" | "calendar">("campaigns");
@@ -29,6 +30,7 @@ export default function BrandDashboard() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [socialMetrics, setSocialMetrics] = useState<SocialMediaMetricsType | null>(null);
 
   const fetchCampaigns = useCallback(async () => {
     try {
@@ -57,79 +59,43 @@ export default function BrandDashboard() {
     }
   }, []);
 
+  const fetchSocialMetrics = useCallback(async () => {
+    try {
+      const data = await api.get<{ platform: string; followersCount: number; engagementRate: number; seriesData?: { followers?: { month: string; count: number }[]; engagementGrowth?: { month: string; growth: number }[] } }[]>(
+        "/api/social-metrics"
+      );
+      if (!Array.isArray(data) || data.length === 0) {
+        setSocialMetrics(null);
+        return;
+      }
+      const byPlatform: SocialMediaMetricsType = {};
+      for (const row of data) {
+        const key = row.platform as "instagram" | "youtube" | "tiktok";
+        if (!byPlatform[key]) {
+          byPlatform[key] = {
+            followers: row.seriesData?.followers ?? [],
+            engagementGrowth: row.seriesData?.engagementGrowth ?? [],
+            totalFollowers: row.followersCount,
+            engagementRate: row.engagementRate,
+          };
+        }
+      }
+      setSocialMetrics(byPlatform);
+    } catch {
+      setSocialMetrics(null);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       setError(null);
-      await Promise.all([fetchCampaigns(), fetchDeliverables(), fetchNotifications()]);
+      await Promise.all([fetchCampaigns(), fetchDeliverables(), fetchNotifications(), fetchSocialMetrics()]);
       if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [fetchCampaigns, fetchDeliverables, fetchNotifications]);
-
-  const [socialMetrics] = useState<SocialMediaMetricsType>({
-    instagram: {
-      followers: [
-        { month: "Jan", count: 10000 },
-        { month: "Feb", count: 12000 },
-        { month: "Mar", count: 15000 },
-        { month: "Apr", count: 18000 },
-        { month: "May", count: 22000 },
-        { month: "Jun", count: 25000 },
-      ],
-      engagementGrowth: [
-        { month: "Jan", growth: 2.5 },
-        { month: "Feb", growth: 3.2 },
-        { month: "Mar", growth: 3.8 },
-        { month: "Apr", growth: 4.1 },
-        { month: "May", growth: 4.5 },
-        { month: "Jun", growth: 5.2 },
-      ],
-      totalFollowers: 25000,
-      engagementRate: 5.2,
-    },
-    youtube: {
-      followers: [
-        { month: "Jan", count: 5000 },
-        { month: "Feb", count: 6000 },
-        { month: "Mar", count: 7500 },
-        { month: "Apr", count: 9000 },
-        { month: "May", count: 11000 },
-        { month: "Jun", count: 13000 },
-      ],
-      engagementGrowth: [
-        { month: "Jan", growth: 1.8 },
-        { month: "Feb", growth: 2.1 },
-        { month: "Mar", growth: 2.5 },
-        { month: "Apr", growth: 2.8 },
-        { month: "May", growth: 3.2 },
-        { month: "Jun", growth: 3.6 },
-      ],
-      totalFollowers: 13000,
-      engagementRate: 3.6,
-    },
-    tiktok: {
-      followers: [
-        { month: "Jan", count: 8000 },
-        { month: "Feb", count: 10000 },
-        { month: "Mar", count: 12000 },
-        { month: "Apr", count: 15000 },
-        { month: "May", count: 18000 },
-        { month: "Jun", count: 20000 },
-      ],
-      engagementGrowth: [
-        { month: "Jan", growth: 3.0 },
-        { month: "Feb", growth: 3.5 },
-        { month: "Mar", growth: 4.0 },
-        { month: "Apr", growth: 4.5 },
-        { month: "May", growth: 5.0 },
-        { month: "Jun", growth: 5.5 },
-      ],
-      totalFollowers: 20000,
-      engagementRate: 5.5,
-    },
-  });
+  }, [fetchCampaigns, fetchDeliverables, fetchNotifications, fetchSocialMetrics]);
 
   const handleStatusChange = async (id: string, status: DeliverableStatus) => {
     try {
@@ -342,7 +308,7 @@ export default function BrandDashboard() {
 
         {activeView === "social" && (
           <div>
-            <SocialMediaMetrics metrics={socialMetrics} />
+            <SocialMediaMetrics metrics={socialMetrics ?? defaultSocialMetrics} />
           </div>
         )}
 

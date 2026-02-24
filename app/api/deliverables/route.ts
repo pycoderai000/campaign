@@ -26,49 +26,31 @@ export async function GET(request: Request) {
     conditions.push(eq(campaigns.brandId, user.brandId));
   }
 
+  const baseQuery = () =>
+    db
+      .select({
+        id: deliverables.id,
+        name: deliverables.name,
+        postType: deliverables.postType,
+        caption: deliverables.caption,
+        postingDate: deliverables.postingDate,
+        postingTime: deliverables.postingTime,
+        liveLink: deliverables.liveLink,
+        campaignId: deliverables.campaignId,
+        campaignName: campaigns.name,
+        brandId: brands.id,
+        brandName: brands.name,
+        status: deliverables.status,
+        createdAt: deliverables.createdAt,
+      })
+      .from(deliverables)
+      .innerJoin(campaigns, eq(deliverables.campaignId, campaigns.id))
+      .innerJoin(brands, eq(campaigns.brandId, brands.id));
+
   const rows =
     conditions.length > 0
-      ? await db
-          .select({
-            id: deliverables.id,
-            name: deliverables.name,
-            postType: deliverables.postType,
-            caption: deliverables.caption,
-            postingDate: deliverables.postingDate,
-            postingTime: deliverables.postingTime,
-            liveLink: deliverables.liveLink,
-            campaignId: deliverables.campaignId,
-            campaignName: campaigns.name,
-            brandId: brands.id,
-            brandName: brands.name,
-            status: deliverables.status,
-            createdAt: deliverables.createdAt,
-          })
-          .from(deliverables)
-          .innerJoin(campaigns, eq(deliverables.campaignId, campaigns.id))
-          .innerJoin(brands, eq(campaigns.brandId, brands.id))
-          .where(and(...conditions))
-          .orderBy(desc(deliverables.createdAt))
-      : await db
-          .select({
-            id: deliverables.id,
-            name: deliverables.name,
-            postType: deliverables.postType,
-            caption: deliverables.caption,
-            postingDate: deliverables.postingDate,
-            postingTime: deliverables.postingTime,
-            liveLink: deliverables.liveLink,
-            campaignId: deliverables.campaignId,
-            campaignName: campaigns.name,
-            brandId: brands.id,
-            brandName: brands.name,
-            status: deliverables.status,
-            createdAt: deliverables.createdAt,
-          })
-          .from(deliverables)
-          .innerJoin(campaigns, eq(deliverables.campaignId, campaigns.id))
-          .innerJoin(brands, eq(campaigns.brandId, brands.id))
-          .orderBy(desc(deliverables.createdAt));
+      ? await baseQuery().where(and(...conditions)).orderBy(desc(deliverables.createdAt))
+      : await baseQuery().orderBy(desc(deliverables.createdAt));
 
   const ids = rows.map((r) => r.id);
   const filesByDeliverable =
