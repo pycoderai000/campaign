@@ -4,6 +4,7 @@ import { useState } from "react";
 import Modal from "./Modal";
 import ContentViewer from "./ContentViewer";
 import type { Deliverable, DeliverableStatus, FileOrUrl } from "@/types";
+import { getFileDisplayUrl } from "@/lib/api";
 
 interface BrandDeliverablesTableProps {
   deliverables: Deliverable[];
@@ -44,11 +45,10 @@ export default function BrandDeliverablesTable({
     }
     
     if (typeof firstFile === "string") {
-      // Check if it's a video URL
       if (firstFile.includes('.mp4') || firstFile.includes('.webm') || firstFile.includes('.mov') || firstFile.includes('video')) {
-        return null; // Video URL, show placeholder
+        return null;
       }
-      return firstFile; // Image URL
+      return getFileDisplayUrl(firstFile);
     }
     if (firstFile instanceof File && firstFile.type.startsWith("image/")) {
       return URL.createObjectURL(firstFile);
@@ -200,7 +200,7 @@ export default function BrandDeliverablesTable({
                                   </h4>
                                   <div className="relative bg-black rounded-lg overflow-hidden">
                                     <video
-                                      src={typeof deliverable.files[0] === "string" ? deliverable.files[0] : URL.createObjectURL(deliverable.files[0])}
+                                      src={typeof deliverable.files[0] === "string" ? getFileDisplayUrl(deliverable.files[0]) : URL.createObjectURL(deliverable.files[0])}
                                       controls
                                       className="w-full h-auto max-h-[400px]"
                                     />

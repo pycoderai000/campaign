@@ -1,34 +1,57 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState, Suspense } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const [isAdmin, setIsAdmin] = useState(true);
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/admin/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual authentication
-    if (isAdmin) {
-      router.push("/admin/dashboard");
-    } else {
-      router.push("/brand/dashboard");
+    setError("");
+    setLoading(true);
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+      if (res?.error) {
+        setError("Invalid email or password");
+        setLoading(false);
+        return;
+      }
+      if (res?.ok) {
+        const target =
+          callbackUrl.startsWith("/brand")
+            ? "/brand/dashboard"
+            : callbackUrl.startsWith("/admin")
+              ? "/admin/dashboard"
+              : "/admin/dashboard";
+        router.push(target);
+        router.refresh();
+      }
+    } catch {
+      setError("Something went wrong");
     }
+    setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
-      {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000" />
       </div>
-      
+
       <div className="relative z-10 bg-white/80 backdrop-blur-xl p-6 sm:p-8 lg:p-10 rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-white/20">
         <div className="mb-6 sm:mb-8 text-center">
           <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl sm:rounded-2xl mb-3 sm:mb-4 shadow-lg">
@@ -42,45 +65,15 @@ export default function LoginPage() {
           <p className="text-sm sm:text-base text-gray-600 font-medium">Sign in to your account</p>
         </div>
 
-        <div className="mb-6 sm:mb-8 flex gap-2 sm:gap-3 p-1 bg-gray-100 rounded-lg sm:rounded-xl">
-          <button
-            type="button"
-            onClick={() => {
-              setIsAdmin(true);
-              setEmail("");
-              setPassword("");
-            }}
-            className={`flex-1 py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold text-sm sm:text-base transition-all duration-200 ${
-              isAdmin
-                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            Admin Login
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsAdmin(false);
-              setEmail("");
-              setPassword("");
-            }}
-            className={`flex-1 py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold text-sm sm:text-base transition-all duration-200 ${
-              !isAdmin
-                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            Brand Login
-          </button>
-        </div>
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-700 text-sm font-medium">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-semibold text-gray-700 mb-2"
-            >
+            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
               Email Address
             </label>
             <div className="relative">
@@ -102,10 +95,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-semibold text-gray-700 mb-2"
-            >
+            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
               Password
             </label>
             <div className="relative">
@@ -128,19 +118,20 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3.5 px-4 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3.5 px-4 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Sign In
+            {loading ? "Signing in…" : "Sign In"}
           </button>
         </form>
       </div>
-      
+
       <style jsx>{`
         @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1)); }
-          33% { transform: translate(30px, -50px) scale(1.1)); }
-          66% { transform: translate(-20px, 20px) scale(0.9)); }
-          100% { transform: translate(0px, 0px) scale(1)); }
+          0% { transform: translate(0px, 0px) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+          100% { transform: translate(0px, 0px) scale(1); }
         }
         .animate-blob {
           animation: blob 7s infinite;
@@ -156,3 +147,10 @@ export default function LoginPage() {
   );
 }
 
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50"><div className="text-lg font-semibold text-slate-600">Loading…</div></div>}>
+      <LoginForm />
+    </Suspense>
+  );
+}

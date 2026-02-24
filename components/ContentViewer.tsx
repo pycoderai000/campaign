@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { PostType, ContentVersion, FileOrUrl } from "@/types";
+import { getFileDisplayUrl } from "@/lib/api";
 
 interface ContentViewerProps {
   files: FileOrUrl[];
@@ -35,17 +36,17 @@ export default function ContentViewer({
 
   const getThumbnail = (file: FileOrUrl): string => {
     if (typeof file === "string") {
-      return file; // Already a URL
+      return getFileDisplayUrl(file);
     }
     if (file instanceof File && file.type.startsWith("image/")) {
       return URL.createObjectURL(file);
     }
-    return ""; // Video thumbnail would need to be generated
+    return "";
   };
 
   const getFileUrl = (file: FileOrUrl): string => {
     if (typeof file === "string") {
-      return file;
+      return getFileDisplayUrl(file);
     }
     if (file instanceof File) {
       return URL.createObjectURL(file);

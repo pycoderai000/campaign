@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/components/Sidebar";
 import NotificationBar from "@/components/NotificationBar";
 import Modal from "@/components/Modal";
@@ -9,10 +9,14 @@ import CreateCampaignForm from "@/components/CreateCampaignForm";
 import ExcelDeliverablesTable from "@/components/ExcelDeliverablesTable";
 import DeliverablesTable from "@/components/DeliverablesTable";
 import CampaignMetrics from "@/components/CampaignMetrics";
-import ContentViewer from "@/components/ContentViewer";
 import EditDeliverableForm from "@/components/EditDeliverableForm";
 import ContentCalendar from "@/components/ContentCalendar";
-import type { Brand, Campaign, Deliverable, Notification, DeliverableStatus } from "@/types";
+import type { Brand, Campaign, Deliverable, Notification, FileOrUrl } from "@/types";
+import { api, uploadFiles } from "@/lib/api";
+
+function isFile(f: FileOrUrl): f is File {
+  return f instanceof File;
+}
 
 export default function AdminDashboard() {
   const [activeView, setActiveView] = useState<"brands" | "campaigns" | "deliverables" | "metrics" | "calendar">("brands");
@@ -22,100 +26,60 @@ export default function AdminDashboard() {
   const [showCreateDeliverable, setShowCreateDeliverable] = useState(false);
   const [showEditDeliverable, setShowEditDeliverable] = useState(false);
   const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  
-  // Mock data - replace with actual API calls
-  const [brands, setBrands] = useState<Brand[]>([
-    { id: "1", name: "Brand 1", poc: "John Doe", email: "john@brand1.com", contactNumber: "1234567890", createdAt: new Date().toISOString() },
-  ]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([
-    {
-      id: "1",
-      name: "Campaign 1",
-      type: "Instagram",
-      brandId: "1",
-      brandName: "Brand 1",
-      createdAt: new Date().toISOString(),
-    },
-  ]);
-  const [deliverables, setDeliverables] = useState<Deliverable[]>([
-    {
-      id: "1",
-      name: "Deliverable 1",
-      postType: "Static",
-      files: ["/mock/image1.svg"],
-      caption: "Sample caption for deliverable 1",
-      postingDate: "2026-02-17",
-      postingTime: "10:00",
-      campaignId: "1",
-      campaignName: "Campaign 1",
-      brandId: "1",
-      brandName: "Brand 1",
-      status: "New content",
-      comments: [],
-      createdAt: new Date().toISOString(),
-      contentHistory: [],
-      revisions: [],
-    },
-    {
-      id: "2",
-      name: "Deliverable 2 - Video",
-      postType: "Video post",
-      // Public, lightweight sample video for dev/testing (ensures the player actually plays)
-      files: ["https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"],
-      caption: "This is a video deliverable for testing",
-      postingDate: "2026-02-18",
-      postingTime: "14:30",
-      campaignId: "1",
-      campaignName: "Campaign 1",
-      brandId: "1",
-      brandName: "Brand 1",
-      status: "Approved",
-      comments: [],
-      createdAt: new Date().toISOString(),
-      contentHistory: [],
-      revisions: [],
-    },
-    {
-      id: "3",
-      name: "Deliverable 3 - Live",
-      postType: "Carousel",
-      files: [
-        "/mock/image2.svg",
-        "/mock/image3.svg",
-      ],
-      caption: "Carousel content going live soon!",
-      postingDate: "2026-02-19",
-      postingTime: "09:00",
-      campaignId: "1",
-      campaignName: "Campaign 1",
-      brandId: "1",
-      brandName: "Brand 1",
-      status: "Live",
-      comments: [],
-      createdAt: new Date().toISOString(),
-      contentHistory: [],
-      revisions: [],
-    },
-    {
-      id: "4",
-      name: "Deliverable 4 - Revision",
-      postType: "Static",
-      files: ["/mock/image4.svg"],
-      caption: "Content needs revision based on feedback.",
-      postingDate: "2026-02-20",
-      postingTime: "16:00",
-      campaignId: "1",
-      campaignName: "Campaign 1",
-      brandId: "1",
-      brandName: "Brand 1",
-      status: "In revision",
-      comments: [],
-      createdAt: new Date().toISOString(),
-      contentHistory: [],
-      revisions: [],
-    },
-  ]);
+
+  const fetchBrands = useCallback(async () => {
+    try {
+      const data = await api.get<Brand[]>("/api/brands");
+      setBrands(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load brands");
+    }
+  }, []);
+
+  const fetchCampaigns = useCallback(async () => {
+    try {
+      const data = await api.get<Campaign[]>("/api/campaigns");
+      setCampaigns(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load campaigns");
+    }
+  }, []);
+
+  const fetchDeliverables = useCallback(async () => {
+    try {
+      const data = await api.get<Deliverable[]>("/api/deliverables");
+      setDeliverables(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load deliverables");
+    }
+  }, []);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const data = await api.get<Notification[]>("/api/notifications");
+      setNotifications(Array.isArray(data) ? data : []);
+    } catch {
+      // non-blocking
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      await Promise.all([fetchBrands(), fetchCampaigns(), fetchDeliverables(), fetchNotifications()]);
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [fetchBrands, fetchCampaigns, fetchDeliverables, fetchNotifications]);
 
   const sidebarItems = [
     { label: "Brands", href: "#", onClick: () => setActiveView("brands"), viewKey: "brands" },
@@ -125,79 +89,84 @@ export default function AdminDashboard() {
     { label: "Content Calendar", href: "#", onClick: () => setActiveView("calendar"), viewKey: "calendar" },
   ];
 
-  const handleCreateBrand = (brandData: Omit<Brand, "id" | "createdAt">) => {
-    const newBrand: Brand = {
-      ...brandData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    setBrands([...brands, newBrand]);
-    setShowCreateBrand(false);
-  };
-
-  const handleCreateCampaign = (campaignData: Omit<Campaign, "id" | "createdAt">) => {
-    const newCampaign: Campaign = {
-      ...campaignData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    setCampaigns([...campaigns, newCampaign]);
-    setShowCreateCampaign(false);
-  };
-
-  const handleCreateDeliverables = (newDeliverables: Deliverable[]) => {
-    const deliverablesWithIds = newDeliverables.map((d, index) => ({
-      ...d,
-      id: Date.now().toString() + index,
-      comments: [],
-      createdAt: new Date().toISOString(),
-      contentHistory: [],
-      revisions: [],
-    }));
-    
-    setDeliverables([...deliverables, ...deliverablesWithIds]);
-    setShowCreateDeliverable(false);
-    
-    // Add notifications for new content
-    deliverablesWithIds.forEach((deliverable) => {
-      addNotification({
-        type: "new_content",
-        title: "New Content Uploaded",
-        message: `New content uploaded for ${deliverable.name}`,
-        deliverableId: deliverable.id,
-        campaignId: deliverable.campaignId,
-      });
-    });
-  };
-
-  const handleUpdateDeliverable = (updated: Deliverable) => {
-    const oldDeliverable = deliverables.find((d) => d.id === updated.id);
-    
-    setDeliverables(deliverables.map((d) => (d.id === updated.id ? updated : d)));
-    setShowEditDeliverable(false);
-    setEditingDeliverable(null);
-    
-    // Check for status change
-    if (oldDeliverable && oldDeliverable.status !== updated.status) {
-      addNotification({
-        type: "status_change",
-        title: "Status Changed",
-        message: `${updated.name} status changed to ${updated.status}`,
-        deliverableId: updated.id,
-        campaignId: updated.campaignId,
-      });
+  const handleCreateBrand = async (brandData: Omit<Brand, "id" | "createdAt">) => {
+    try {
+      await api.post<Brand>("/api/brands", brandData);
+      setShowCreateBrand(false);
+      await fetchBrands();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to create brand");
     }
-    
-    // Check for new files (revision)
-    if (updated.files.length > 0 && oldDeliverable && 
-        JSON.stringify(updated.files) !== JSON.stringify(oldDeliverable.files)) {
-      addNotification({
-        type: "revision",
-        title: "Content Revised",
-        message: `Content revised for ${updated.name}`,
-        deliverableId: updated.id,
-        campaignId: updated.campaignId,
+  };
+
+  const handleCreateCampaign = async (campaignData: Omit<Campaign, "id" | "createdAt">) => {
+    try {
+      await api.post<Campaign>("/api/campaigns", campaignData);
+      setShowCreateCampaign(false);
+      await fetchCampaigns();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to create campaign");
+    }
+  };
+
+  const handleCreateDeliverables = async (newDeliverables: Deliverable[]) => {
+    try {
+      const payload: { name: string; postType: string; caption: string; postingDate: string; postingTime: string; campaignId: string; fileUrls: string[]; status: string }[] = [];
+      for (const d of newDeliverables) {
+        const campaign = campaigns.find((c) => c.id === d.campaignId);
+        let fileUrls: string[] = [];
+        const files = Array.isArray(d.files) ? d.files : [];
+        const toUpload = files.filter(isFile);
+        const existingUrls = files.filter((f): f is string => typeof f === "string");
+        if (toUpload.length > 0) {
+          const { urls } = await uploadFiles(toUpload);
+          fileUrls = urls;
+        } else {
+          fileUrls = existingUrls;
+        }
+        payload.push({
+          name: d.name,
+          postType: d.postType,
+          caption: d.caption,
+          postingDate: d.postingDate,
+          postingTime: d.postingTime,
+          campaignId: d.campaignId,
+          fileUrls,
+          status: d.status,
+        });
+      }
+      await api.post<Deliverable[]>("/api/deliverables", payload);
+      setShowCreateDeliverable(false);
+      await Promise.all([fetchDeliverables(), fetchNotifications()]);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to create deliverables");
+    }
+  };
+
+  const handleUpdateDeliverable = async (updated: Deliverable) => {
+    try {
+      const files = Array.isArray(updated.files) ? updated.files : [];
+      const toUpload = files.filter(isFile);
+      let fileUrls: string[] = files.filter((f): f is string => typeof f === "string");
+      if (toUpload.length > 0) {
+        const { urls } = await uploadFiles(toUpload);
+        fileUrls = [...fileUrls, ...urls];
+      }
+      await api.patch<Deliverable>(`/api/deliverables/${updated.id}`, {
+        name: updated.name,
+        postType: updated.postType,
+        caption: updated.caption,
+        postingDate: updated.postingDate,
+        postingTime: updated.postingTime,
+        liveLink: updated.liveLink || "",
+        status: updated.status,
+        fileUrls,
       });
+      setShowEditDeliverable(false);
+      setEditingDeliverable(null);
+      await Promise.all([fetchDeliverables(), fetchNotifications()]);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to update deliverable");
     }
   };
 
@@ -206,69 +175,30 @@ export default function AdminDashboard() {
     setShowEditDeliverable(true);
   };
 
-  const addNotification = (notification: Omit<Notification, "id" | "read" | "createdAt">) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: Date.now().toString(),
-      read: false,
-      createdAt: new Date().toISOString(),
-    };
-    setNotifications((prev) => [newNotification, ...prev]);
-  };
-
   const handleNotificationClick = (notification: Notification) => {
-    const deliverable = deliverables.find((d) => d.id === notification.deliverableId);
-    if (deliverable) {
-      setActiveView("deliverables");
-      setTimeout(() => {
-        const element = document.getElementById(`deliverable-${deliverable.id}`);
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 100);
+    setActiveView("deliverables");
+    setTimeout(() => {
+      const element = document.getElementById(`deliverable-${notification.deliverableId}`);
+      if (element) element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+  };
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await api.patch(`/api/notifications/${id}/read`, {});
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    } catch {
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     }
   };
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="text-lg font-semibold text-slate-600">Loading…</div>
+      </div>
     );
-  };
-
-  // Track comment IDs we've already notified about
-  const [notifiedCommentIds, setNotifiedCommentIds] = useState<Set<string>>(new Set());
-
-  // Monitor for new comments from brand users
-  useEffect(() => {
-    const newCommentIds: string[] = [];
-    
-    deliverables.forEach((deliverable) => {
-      deliverable.comments.forEach((comment) => {
-        // Check if this comment is from a brand user and we haven't notified about it
-        if (
-          (comment.author.includes("Brand") || comment.author.includes("brand")) &&
-          !notifiedCommentIds.has(comment.id)
-        ) {
-          const newNotification: Notification = {
-            type: "new_comment",
-            title: "New Comment",
-            message: `New comment on ${deliverable.name} by ${comment.author}`,
-            deliverableId: deliverable.id,
-            campaignId: deliverable.campaignId,
-            id: Date.now().toString(),
-            read: false,
-            createdAt: new Date().toISOString(),
-          };
-          setNotifications((prev) => [newNotification, ...prev]);
-          newCommentIds.push(comment.id);
-        }
-      });
-    });
-    
-    if (newCommentIds.length > 0) {
-      setNotifiedCommentIds((prev) => new Set([...prev, ...newCommentIds]));
-    }
-  }, [deliverables, notifiedCommentIds]);
+  }
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -278,6 +208,11 @@ export default function AdminDashboard() {
         activeView={activeView}
       />
       <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto lg:ml-0">
+        {error && (
+          <div className="mb-4 p-4 rounded-xl bg-red-50 text-red-700 font-medium">
+            {error}
+          </div>
+        )}
         <div className="mb-6 lg:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>

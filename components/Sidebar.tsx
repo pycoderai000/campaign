@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 
 interface SidebarProps {
   role: "admin" | "brand";
@@ -107,9 +108,10 @@ export default function Sidebar({ role, items, activeView }: SidebarProps) {
         })}
         <div className="pt-4 mt-4 border-t border-slate-700/50">
           <button
+            type="button"
             onClick={() => {
-              router.push("/login");
               setIsMobileOpen(false);
+              signOut({ callbackUrl: "/login" });
             }}
             className="w-full text-left px-3 lg:px-4 py-2.5 lg:py-3.5 rounded-xl transition-all duration-200 text-gray-300 hover:bg-red-500/20 hover:text-red-300 flex items-center gap-2 lg:gap-3 group text-sm lg:text-base"
           >

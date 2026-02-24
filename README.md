@@ -25,7 +25,8 @@ A comprehensive Next.js application for managing brands, campaigns, and delivera
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js 18+
+- PostgreSQL (local, or [Neon](https://neon.tech) / [Supabase](https://supabase.com) / [Vercel Postgres](https://vercel.com/storage/postgres))
 - npm or yarn
 
 ### Installation
@@ -35,12 +36,35 @@ A comprehensive Next.js application for managing brands, campaigns, and delivera
 npm install
 ```
 
-2. Run the development server:
+2. Copy environment variables and set your database and auth secrets:
+```bash
+cp .env.example .env.local
+```
+Edit `.env.local` and set:
+- `DATABASE_URL` – PostgreSQL connection string
+- `NEXTAUTH_SECRET` – e.g. `openssl rand -base64 32`
+- `NEXTAUTH_URL` – e.g. `http://localhost:3000` (or your production URL)
+
+3. Run database migrations (create tables):
+```bash
+npm run db:push
+```
+Or generate and run migrations: `npm run db:generate` then `npm run db:migrate`.
+
+4. Create the first user (admin). Either register via API:
+```bash
+curl -X POST http://localhost:3000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"yourpassword","role":"admin"}'
+```
+The first user is always created as admin. Subsequent registrations require a valid role and, for brand users, a `brandId`.
+
+5. Run the development server:
 ```bash
 npm run dev
 ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser
+6. Open [http://localhost:3000](http://localhost:3000), go to **Login**, and sign in with the credentials you registered.
 
 ## Project Structure
 
@@ -72,12 +96,15 @@ npm run dev
 ## Key Features Implementation
 
 ### Authentication
-- Login page with toggle between Admin and Brand login
-- Currently uses mock authentication (ready for backend integration)
+- **NextAuth.js** with Credentials provider; JWT session with `role` (admin | brand) and optional `brandId`.
+- Login page: sign in with email/password; redirect to Admin or Brand dashboard based on user role.
+- Middleware protects `/admin/*` (admin only) and `/brand/*` (brand only). Register at `POST /api/auth/register`.
 
-### Data Management
-- All data is currently stored in component state (ready for API integration)
-- Mock data provided for demonstration
+### Backend & Data
+- **PostgreSQL** + **Drizzle ORM** for brands, campaigns, deliverables, comments, notifications, file references.
+- **REST API** under `/api`: brands, campaigns, deliverables (with comments), notifications, file upload.
+- **File upload**: `POST /api/upload` stores files under `./uploads` and returns URLs; served at `/api/files/[...path]`.
+- Admin and Brand dashboards load and mutate data via these APIs.
 
 ### Metrics & Analytics
 - **Post-level metrics**: Impressions, Reach, Likes, Comments, Engagement
@@ -115,21 +142,23 @@ Your app will be live at `https://your-project.vercel.app`
 
 ## Next Steps
 
-1. **Backend Integration**: Connect to your API endpoints
-2. **Authentication**: Implement proper authentication with JWT or session management
-3. **File Storage**: Integrate with cloud storage (AWS S3, Cloudinary, etc.)
-4. **Real-time Updates**: Add WebSocket support for real-time metric updates
-5. **Export Functionality**: Add Excel/CSV export for deliverables table
-6. **Notifications**: Add notification system for status changes and comments
-7. **Deploy to Production**: Follow the deployment guide to go live
+1. **File Storage (production)**: Replace local `./uploads` with Vercel Blob or S3 and set env vars (see `docs/BACKEND_PLAN.md`).
+2. **Real-time Updates**: Optional WebSocket or polling for notifications.
+3. **Export**: Add Excel/CSV export for deliverables table.
+4. **Deploy to Production**: Set `DATABASE_URL`, `NEXTAUTH_SECRET`, and `NEXTAUTH_URL` in your host (e.g. Vercel) and run migrations.
 
 ## Technologies Used
 
-- **Next.js 14** - React framework with App Router
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Styling
-- **Recharts** - Chart library for metrics visualization
-- **React Hook Form** - Form handling (ready for integration)
+- **Next.js 14** – React framework with App Router
+- **TypeScript** – Type safety
+- **Tailwind CSS** – Styling
+- **Recharts** – Chart library for metrics visualization
+- **React Hook Form** – Form handling
+- **NextAuth.js** – Authentication (Credentials + JWT)
+- **PostgreSQL** – Database
+- **Drizzle ORM** – Type-safe DB access and migrations
+- **Zod** – Request validation
+- **bcryptjs** – Password hashing
 
 ## License
 
