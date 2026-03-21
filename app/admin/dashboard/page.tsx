@@ -11,6 +11,7 @@ import DeliverablesTable from "@/components/DeliverablesTable";
 import CampaignMetrics from "@/components/CampaignMetrics";
 import EditDeliverableForm from "@/components/EditDeliverableForm";
 import ContentCalendar from "@/components/ContentCalendar";
+import DeliverableDetailModal from "@/components/DeliverableDetailModal";
 import type { Brand, Campaign, Deliverable, Notification, FileOrUrl } from "@/types";
 import { api, uploadFiles } from "@/lib/api";
 
@@ -20,6 +21,7 @@ function isFile(f: FileOrUrl): f is File {
 
 export default function AdminDashboard() {
   const [activeView, setActiveView] = useState<"brands" | "campaigns" | "deliverables" | "metrics" | "calendar">("brands");
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [selectedCampaignForCalendar, setSelectedCampaignForCalendar] = useState<Campaign | null>(null);
   const [showCreateBrand, setShowCreateBrand] = useState(false);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
@@ -35,6 +37,7 @@ export default function AdminDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [metaInstagramStatus, setMetaInstagramStatus] = useState<{ configured: boolean; hasInstagram: boolean; message: string } | null>(null);
   const [syncingBrandId, setSyncingBrandId] = useState<string | null>(null);
+  const [deliverableDetailId, setDeliverableDetailId] = useState<string | null>(null);
 
   const fetchBrands = useCallback(async () => {
     try {
@@ -121,10 +124,18 @@ export default function AdminDashboard() {
   };
 
   const handleCreateDeliverables = async (newDeliverables: Deliverable[]) => {
+    if (newDeliverables.length === 0) {
+      alert("Please fill in at least one row (name, caption, date, time, campaign).");
+      return;
+    }
     try {
-      const payload: { name: string; postType: string; caption: string; postingDate: string; postingTime: string; campaignId: string; fileUrls: string[]; status: string }[] = [];
+      const payload: { name: string; postType: string; caption: string; postingDate: string; postingTime: string; campaignId: string; fileUrls: string[]; status: string; liveLink?: string }[] = [];
       for (const d of newDeliverables) {
         const campaign = campaigns.find((c) => c.id === d.campaignId);
+        if (!campaign) {
+          alert(`Campaign not found for "${d.name}". Please select a valid campaign.`);
+          return;
+        }
         let fileUrls: string[] = [];
         const files = Array.isArray(d.files) ? d.files : [];
         const toUpload = files.filter(isFile);
@@ -144,11 +155,16 @@ export default function AdminDashboard() {
           campaignId: d.campaignId,
           fileUrls,
           status: d.status,
+          liveLink: d.liveLink ?? "",
         });
       }
-      await api.post<Deliverable[]>("/api/deliverables", payload);
+      const created = await api.post<Deliverable[] | Deliverable>("/api/deliverables", payload);
+      const createdList = Array.isArray(created) ? created : created ? [created] : [];
+      setDeliverables((prev) => [...createdList, ...prev]);
       setShowCreateDeliverable(false);
-      await Promise.all([fetchDeliverables(), fetchNotifications()]);
+      setActiveView("deliverables");
+      await fetchDeliverables();
+      await fetchNotifications();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed to create deliverables");
     }
@@ -363,6 +379,29 @@ export default function AdminDashboard() {
 
         {activeView === "campaigns" && (
           <div>
+            {selectedCampaign ? (
+              <div>
+                <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCampaign(null)}
+                    className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 font-semibold"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Back to campaigns
+                  </button>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-800">{selectedCampaign.name} – Deliverables</h2>
+                </div>
+                <DeliverablesTable
+                  deliverables={deliverables.filter((d) => d.campaignId === selectedCampaign.id)}
+                  onEdit={handleEditDeliverable}
+                  showComments={true}
+                />
+              </div>
+            ) : (
+            <>
             <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
               <h2 className="text-2xl sm:text-3xl font-bold text-slate-800">Campaigns</h2>
               <button
@@ -408,9 +447,11 @@ export default function AdminDashboard() {
                     TikTok: "from-gray-800 to-gray-900",
                   };
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={campaign.id}
-                      className="group bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-soft hover:shadow-hover transition-all duration-300 border border-gray-200 hover:border-indigo-300 transform hover:-translate-y-1"
+                      onClick={() => setSelectedCampaign(campaign)}
+                      className="group w-full text-left bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-soft hover:shadow-hover transition-all duration-300 border border-gray-200 hover:border-indigo-300 transform hover:-translate-y-1"
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className={`w-12 h-12 bg-gradient-to-br ${typeColors[campaign.type] || "from-indigo-500 to-purple-600"} rounded-xl flex items-center justify-center shadow-lg`}>
@@ -433,10 +474,13 @@ export default function AdminDashboard() {
                           <span className="text-gray-800 font-semibold">{campaign.brandName}</span>
                         </div>
                       </div>
-                    </div>
+                      <p className="mt-3 text-sm text-indigo-600 font-medium">View deliverables →</p>
+                    </button>
                   );
                 })}
               </div>
+            )}
+            </>
             )}
           </div>
         )}
@@ -497,14 +541,18 @@ export default function AdminDashboard() {
               <h2 className="text-2xl sm:text-3xl font-bold text-slate-800">Content Calendar</h2>
               {campaigns.length > 0 && (
                 <select
-                  value={selectedCampaignForCalendar?.id || ""}
+                  value={selectedCampaignForCalendar?.id ?? "all"}
                   onChange={(e) => {
-                    const campaign = campaigns.find((c) => c.id === e.target.value);
-                    setSelectedCampaignForCalendar(campaign || null);
+                    const value = e.target.value;
+                    if (value === "all") setSelectedCampaignForCalendar(null);
+                    else {
+                      const campaign = campaigns.find((c) => c.id === value);
+                      setSelectedCampaignForCalendar(campaign || null);
+                    }
                   }}
                   className="px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white font-semibold text-sm sm:text-base"
                 >
-                  <option value="">Select a Campaign</option>
+                  <option value="all">All campaigns</option>
                   {campaigns.map((campaign) => (
                     <option key={campaign.id} value={campaign.id}>
                       {campaign.name}
@@ -515,10 +563,19 @@ export default function AdminDashboard() {
             </div>
             {selectedCampaignForCalendar ? (
               <ContentCalendar
+                key={selectedCampaignForCalendar.id}
                 deliverables={deliverables.filter((d) => d.campaignId === selectedCampaignForCalendar.id)}
                 campaignName={selectedCampaignForCalendar.name}
+                onDeliverableClick={(d) => setDeliverableDetailId(d.id)}
               />
-            ) : campaigns.length === 0 ? (
+            ) : campaigns.length > 0 ? (
+              <ContentCalendar
+                key="all-campaigns"
+                deliverables={deliverables}
+                campaignName="All campaigns"
+                onDeliverableClick={(d) => setDeliverableDetailId(d.id)}
+              />
+            ) : (
               <div className="bg-white/80 backdrop-blur-sm p-16 rounded-2xl shadow-soft text-center border border-gray-200">
                 <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <svg className="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -527,16 +584,6 @@ export default function AdminDashboard() {
                 </div>
                 <p className="text-gray-600 text-lg font-semibold mb-2">No campaigns yet</p>
                 <p className="text-gray-400">Create a campaign first to view the content calendar</p>
-              </div>
-            ) : (
-              <div className="bg-white/80 backdrop-blur-sm p-16 rounded-2xl shadow-soft text-center border border-gray-200">
-                <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <p className="text-gray-600 text-lg font-semibold mb-2">Select a Campaign</p>
-                <p className="text-gray-400">Choose a campaign from the dropdown above to view its content calendar</p>
               </div>
             )}
           </div>
@@ -581,6 +628,16 @@ export default function AdminDashboard() {
             />
           )}
         </Modal>
+
+        <DeliverableDetailModal
+          deliverableId={deliverableDetailId}
+          onClose={() => setDeliverableDetailId(null)}
+          onEdit={(d) => {
+            setDeliverableDetailId(null);
+            setEditingDeliverable(d);
+            setShowEditDeliverable(true);
+          }}
+        />
       </div>
     </div>
   );

@@ -5,29 +5,24 @@ import { getInstagramBusinessAccountId } from "@/lib/meta-graph";
 /**
  * GET /api/sync/instagram/status
  * Admin only. Returns whether Meta env is configured and if the Page has Instagram Business linked.
- * Does not expose any secrets.
+ * Sync only needs META_PAGE_ID + META_PAGE_ACCESS_TOKEN (same as lib/meta-graph).
  */
 export async function GET() {
-  await requireAuth("admin");
+  try {
+    await requireAuth("admin");
+  } catch (e) {
+    if (e instanceof Response) return e;
+    throw e;
+  }
 
   const pageId = process.env.META_PAGE_ID;
   const token = process.env.META_PAGE_ACCESS_TOKEN;
-  const appId = process.env.META_APP_ID;
-  const appSecret = process.env.META_APP_SECRET;
 
   if (!pageId || !token) {
     return NextResponse.json({
       configured: false,
       hasInstagram: false,
-      message: "Add META_PAGE_ID and META_PAGE_ACCESS_TOKEN to .env",
-    });
-  }
-
-  if (!appId || !appSecret) {
-    return NextResponse.json({
-      configured: false,
-      hasInstagram: false,
-      message: "Add META_APP_ID and META_APP_SECRET to .env",
+      message: "Add META_PAGE_ID and META_PAGE_ACCESS_TOKEN to the server environment.",
     });
   }
 
@@ -44,14 +39,14 @@ export async function GET() {
       configured: true,
       hasInstagram: false,
       message:
-        "Meta credentials valid, but this Facebook Page has no Instagram Business account linked. Link an IG Business/Creator account to the Page in Meta Business Suite or Facebook Page Settings.",
+        "Meta credentials are set, but this Facebook Page has no Instagram Business account linked. Link an IG Business/Creator account to the Page in Meta Business Suite or Facebook Page Settings.",
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Meta API error";
     return NextResponse.json({
       configured: true,
       hasInstagram: false,
-      message: `Meta API error: ${message}. Check token and permissions.`,
+      message: `Meta API error: ${message}. Check the Page access token (pages_show_list, instagram_basic, instagram_manage_insights as needed) and that META_PAGE_ID is the Page id.`,
     });
   }
 }

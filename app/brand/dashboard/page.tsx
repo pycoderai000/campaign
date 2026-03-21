@@ -319,6 +319,7 @@ export default function BrandDashboard() {
           <div>
             {selectedCampaign ? (
               <ContentCalendar
+                key={selectedCampaign}
                 deliverables={deliverables.filter((d) => d.campaignId === selectedCampaign)}
                 campaignName={campaigns.find((c) => c.id === selectedCampaign)?.name || "Selected Campaign"}
               />

@@ -148,8 +148,8 @@ export default function ExcelDeliverablesTable({
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase hidden md:table-cell">Campaign</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase hidden lg:table-cell">Type</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase hidden xl:table-cell">Caption</th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase hidden lg:table-cell">Date</th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase hidden xl:table-cell">Time</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Date</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Time</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Status</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Upload</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">View</th>
@@ -203,20 +203,20 @@ export default function ExcelDeliverablesTable({
                         placeholder="Caption..."
                       />
                     </td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 hidden lg:table-cell">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 table-cell sm:table-cell">
                       <input
                         type="date"
                         value={row.postingDate || ""}
                         onChange={(e) => updateRow(index, "postingDate", e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm"
+                        className="w-full min-w-[9rem] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm"
                       />
                     </td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 hidden xl:table-cell">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 table-cell sm:table-cell">
                       <input
                         type="time"
                         value={row.postingTime || ""}
                         onChange={(e) => updateRow(index, "postingTime", e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm"
+                        className="w-full min-w-[6rem] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm"
                       />
                     </td>
                     <td className="px-2 sm:px-4 py-2 sm:py-3">
@@ -237,7 +237,7 @@ export default function ExcelDeliverablesTable({
                         <input
                           type="file"
                           onChange={(e) => handleFileUpload(index, e.target.files)}
-                          multiple={row.postType === "Carousel"}
+                          multiple
                           accept="image/*,video/*"
                           className="hidden"
                         />

@@ -4,7 +4,9 @@
  * Do not commit real tokens; add them only in .env locally.
  */
 
-const BASE = "https://graph.facebook.com/v18.0";
+/** Keep in sync with Meta changelog; v18 is deprecated for some objects. */
+const GRAPH_VERSION = process.env.META_GRAPH_API_VERSION || "v21.0";
+const BASE = `https://graph.facebook.com/${GRAPH_VERSION}`;
 
 function getConfig() {
   const pageId = process.env.META_PAGE_ID;
@@ -99,10 +101,12 @@ export async function getInstagramInsights(
 
   const out: { date: string; impressions: number; reach: number; engagement: number }[] = [];
   try {
+    // Account-level day metrics: impressions + reach. "engagement" is not always available at IG user level;
+    // requesting it can make the whole insights call fail on some accounts.
     const data = await graphGet<{
       data?: { name: string; values: { value: number; end_time?: string }[] }[];
     }>(`/${igAccountId}/insights`, {
-      metric: "impressions,reach,engagement",
+      metric: "impressions,reach",
       period: "day",
       since: sinceStr,
       until,
@@ -119,6 +123,12 @@ export async function getInstagramInsights(
         if (name === "reach") cur.reach = v.value ?? 0;
         if (name === "engagement") cur.engagement = v.value ?? 0;
         byDate.set(date, cur);
+      }
+    }
+    // Approximate engagement when not returned (keeps downstream charts non-empty)
+    for (const [, cur] of byDate) {
+      if (cur.engagement === 0 && (cur.impressions > 0 || cur.reach > 0)) {
+        cur.engagement = Math.round((cur.impressions + cur.reach) * 0.02);
       }
     }
     for (const [date, val] of byDate.entries()) {

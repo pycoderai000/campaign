@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import { randomUUID } from "crypto";
+import { uploadToS3, isS3Configured, resolveMimeType } from "@/lib/s3";
 
-const UPLOAD_DIR = path.join(process.cwd(), "uploads");
+export const runtime = "nodejs";
+
 const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_TYPES = [
   "image/jpeg",
@@ -16,12 +15,38 @@ const ALLOWED_TYPES = [
   "video/webm",
 ];
 
-export async function POST(request: Request) {
-  await requireAuth();
+function isAllowedMime(mime: string): boolean {
+  if (!mime || mime === "application/octet-stream") return false;
+  if (ALLOWED_TYPES.includes(mime)) return true;
+  return mime.startsWith("image/") || mime.startsWith("video/");
+}
 
-  const formData = await request.formData();
-  const files = formData.getAll("files") as File[];
-  const fileList = files.filter((f) => f instanceof File && f.size > 0);
+export async function POST(request: Request) {
+  try {
+    await requireAuth();
+  } catch (e) {
+    if (e instanceof Response) return e;
+    throw e;
+  }
+
+  type FileLike = { size: number; name?: string; type?: string; arrayBuffer: () => Promise<ArrayBuffer> };
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch (e) {
+    console.error("upload formData parse error:", e);
+    return NextResponse.json(
+      { error: "Could not read upload body. If you use a reverse proxy, increase client_max_body_size (e.g. nginx) and ensure the request is not truncated." },
+      { status: 400 }
+    );
+  }
+
+  const files = formData.getAll("files");
+  const fileList = files.filter((f) => {
+    if (!f || typeof f !== "object" || !("size" in f)) return false;
+    const fl = f as FileLike;
+    return typeof fl.size === "number" && fl.size > 0 && typeof fl.arrayBuffer === "function";
+  }) as FileLike[];
 
   if (fileList.length === 0) {
     return NextResponse.json(
@@ -30,31 +55,49 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!isS3Configured()) {
+    return NextResponse.json(
+      {
+        error:
+          "S3 is not configured. Set S3_BUCKET (and AWS_REGION). On EC2, use an IAM role with s3:PutObject on the bucket, or set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.",
+      },
+      { status: 503 }
+    );
+  }
+
   const urls: string[] = [];
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
+  for (const f of fileList) {
+    if (f.size > MAX_SIZE) {
+      return NextResponse.json(
+        { error: `File ${f.name ?? "file"} exceeds 50MB limit` },
+        { status: 400 }
+      );
+    }
+    const reported = f.type ?? "";
+    const resolved = resolveMimeType(f.name || "file", reported);
+    if (!isAllowedMime(resolved)) {
+      return NextResponse.json(
+        { error: `File type not allowed: ${f.name ?? "file"} (${resolved || "unknown"})` },
+        { status: 400 }
+      );
+    }
+    const buffer = Buffer.from(await f.arrayBuffer());
+    const originalName = f.name || "file";
 
-  for (const file of fileList) {
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json(
-        { error: `File ${file.name} exceeds 50MB limit` },
-        { status: 400 }
-      );
+    try {
+      const url = await uploadToS3(buffer, originalName, reported);
+      urls.push(url);
+    } catch (e) {
+      console.error("S3 upload error:", e);
+      const name = e && typeof e === "object" && "name" in e ? String((e as { name?: string }).name) : "";
+      const msg = e instanceof Error ? e.message : "Failed to upload file to S3";
+      const hint =
+        name === "AccessDenied" || /Access Denied/i.test(msg)
+          ? " Check IAM permissions (s3:PutObject on the bucket) and bucket name/region."
+          : "";
+      return NextResponse.json({ error: `${msg}${hint}` }, { status: 500 });
     }
-    const type = file.type;
-    if (!ALLOWED_TYPES.includes(type) && !type.startsWith("image/")) {
-      return NextResponse.json(
-        { error: `File type not allowed: ${file.name}` },
-        { status: 400 }
-      );
-    }
-    const ext = path.extname(file.name) || (type.startsWith("image/") ? ".jpg" : ".mp4");
-    const id = randomUUID();
-    const filename = `${id}${ext}`;
-    const filepath = path.join(UPLOAD_DIR, filename);
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filepath, buffer);
-    urls.push(`/api/files/${filename}`);
   }
 
   return NextResponse.json({ urls });

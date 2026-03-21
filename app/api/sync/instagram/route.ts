@@ -12,9 +12,11 @@ import { fetchInstagramMetrics } from "@/lib/meta-graph";
  * for the given brand. Add your Meta credentials in .env – never commit them.
  */
 export async function POST(request: Request) {
-  const user = await requireAuth("admin");
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    await requireAuth("admin");
+  } catch (e) {
+    if (e instanceof Response) return e;
+    throw e;
   }
 
   let body: { brandId?: string };
