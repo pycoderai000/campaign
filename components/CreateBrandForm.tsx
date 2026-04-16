@@ -2,24 +2,35 @@
 
 import { useState } from "react";
 import type { Brand } from "@/types";
+import Modal from "@/components/Modal";
+
+export type CreateBrandPayload = Omit<Brand, "id" | "createdAt"> & {
+  portalLoginEmail?: string;
+  portalLoginPassword?: string;
+};
 
 interface CreateBrandFormProps {
-  onSubmit: (data: Omit<Brand, "id" | "createdAt">) => void;
+  onSubmit: (data: CreateBrandPayload) => void;
   onCancel: () => void;
 }
 
 export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormProps) {
+  const [showCreateVariableModal, setShowCreateVariableModal] = useState(false);
+  const [newVariableValue, setNewVariableValue] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     poc: "",
     email: "",
     contactNumber: "",
+    contentBuckets: [""],
     instagramLink: "",
     instagramHandle: "",
     youtubeLink: "",
     youtubeHandle: "",
     tiktokLink: "",
     tiktokHandle: "",
+    portalLoginEmail: "",
+    portalLoginPassword: "",
   });
 
   const extractInstagramHandle = (url: string): string => {
@@ -81,19 +92,47 @@ export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormP
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    const contentBuckets = formData.contentBuckets
+      .map((b) => b.trim())
+      .filter(Boolean);
+    onSubmit({
+      ...formData,
+      contentBuckets,
+      contentBucket: contentBuckets[0] || "",
+    });
     setFormData({
       name: "",
       poc: "",
       email: "",
       contactNumber: "",
+      contentBuckets: [""],
       instagramLink: "",
       instagramHandle: "",
       youtubeLink: "",
       youtubeHandle: "",
       tiktokLink: "",
       tiktokHandle: "",
+      portalLoginEmail: "",
+      portalLoginPassword: "",
     });
+  };
+
+  const addContentBucket = () => {
+    const value = newVariableValue.trim();
+    if (!value) return;
+    const existing = formData.contentBuckets
+      .map((b) => b.trim().toLowerCase())
+      .filter(Boolean);
+    if (existing.includes(value.toLowerCase())) {
+      setNewVariableValue("");
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      contentBuckets: [...prev.contentBuckets.filter((b) => b.trim().length > 0), value],
+    }));
+    setNewVariableValue("");
+    setShowCreateVariableModal(false);
   };
 
   return (
@@ -223,6 +262,74 @@ export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormP
         </div>
       </div>
 
+      <div className="border-t border-gray-200 pt-4 sm:pt-6 mt-2">
+        <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-2">Brand dashboard login (optional)</h3>
+        <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+          To let this brand sign in at the login page, choose <strong>Brand Login</strong> and use the email and password you set below. Leave both empty if you will add login later (Edit brand → Brand dashboard login).
+        </p>
+        <div className="space-y-3 sm:space-y-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Portal login email</label>
+            <input
+              type="email"
+              value={formData.portalLoginEmail}
+              onChange={(e) => setFormData({ ...formData, portalLoginEmail: e.target.value })}
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white/50 text-sm sm:text-base"
+              placeholder="Usually same as brand email above"
+            />
+          </div>
+          <div>
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Portal login password</label>
+            <input
+              type="password"
+              value={formData.portalLoginPassword}
+              onChange={(e) => setFormData({ ...formData, portalLoginPassword: e.target.value })}
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white/50 text-sm sm:text-base"
+              placeholder="Min 6 characters"
+              autoComplete="new-password"
+            />
+          </div>
+        </div>
+        <div className="mt-4 sm:mt-5">
+          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+            Create Variable <span className="text-gray-500 text-xs">(Content buckets for this brand)</span>
+          </label>
+          <button
+            type="button"
+            onClick={() => setShowCreateVariableModal(true)}
+            className="px-3 py-2 rounded-lg bg-indigo-100 text-indigo-700 text-xs font-semibold hover:bg-indigo-200"
+          >
+            + Create
+          </button>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {formData.contentBuckets
+              .map((b) => b.trim())
+              .filter(Boolean)
+              .map((bucket, idx) => (
+                <span
+                  key={`${bucket}-${idx}`}
+                  className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold border border-indigo-200"
+                >
+                  {bucket}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        contentBuckets: prev.contentBuckets.filter((b) => b.trim() !== bucket),
+                      }))
+                    }
+                    className="text-indigo-700 hover:text-indigo-900"
+                    aria-label={`Remove ${bucket}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
         <button
           type="submit"
@@ -238,6 +345,43 @@ export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormP
           Cancel
         </button>
       </div>
+      <Modal
+        isOpen={showCreateVariableModal}
+        onClose={() => {
+          setShowCreateVariableModal(false);
+          setNewVariableValue("");
+        }}
+        title="Create Variable"
+      >
+        <div className="space-y-4">
+          <input
+            type="text"
+            value={newVariableValue}
+            onChange={(e) => setNewVariableValue(e.target.value)}
+            placeholder="Example: Supply chain, Cold Storage"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
+          />
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateVariableModal(false);
+                setNewVariableValue("");
+              }}
+              className="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 text-xs font-semibold hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={addContentBucket}
+              className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      </Modal>
     </form>
   );
 }

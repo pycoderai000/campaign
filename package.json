@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3000",
     "build": "next build",
+    "verify": "node scripts/verify-e2e.mjs",
+    "e2e:smoke": "node scripts/e2e-site-smoke.mjs",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "drizzle-kit generate",

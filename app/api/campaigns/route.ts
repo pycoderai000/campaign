@@ -6,6 +6,7 @@ import { db, campaigns, brands } from "@/lib/db";
 
 export async function GET() {
   const user = await requireAuth();
+  if (user instanceof NextResponse) return user;
   const all = await db
     .select({
       id: campaigns.id,
@@ -27,7 +28,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  await requireAuth("admin");
+  const auth = await requireAuth("admin");
+  if (auth instanceof NextResponse) return auth;
   const body = await request.json();
   const parsed = createCampaignSchema.safeParse(body);
   if (!parsed.success) {

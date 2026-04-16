@@ -15,13 +15,14 @@ import {
   revisions,
   revisionFiles,
 } from "@/lib/db";
-import { createNotificationForAdmins, createNotificationForUser } from "@/lib/notifications";
+import { createNotificationForAdmins, createNotificationForBrandUsers } from "@/lib/notifications";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await requireAuth();
+  if (user instanceof NextResponse) return user;
   const { id } = await params;
 
   const [del] = await db
@@ -29,6 +30,7 @@ export async function GET(
       id: deliverables.id,
       name: deliverables.name,
       postType: deliverables.postType,
+      contentBucket: deliverables.contentBucket,
       caption: deliverables.caption,
       postingDate: deliverables.postingDate,
       postingTime: deliverables.postingTime,
@@ -122,6 +124,7 @@ export async function GET(
     id: del.id,
     name: del.name,
     postType: del.postType,
+    contentBucket: del.contentBucket ?? undefined,
     files: fileList.map((f) => f.url),
     caption: del.caption,
     postingDate: del.postingDate,
@@ -149,6 +152,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await requireAuth();
+  if (user instanceof NextResponse) return user;
   const { id } = await params;
 
   const [existing] = await db
@@ -180,11 +184,27 @@ export async function PATCH(
   const data = parsed.data;
   const oldStatus = existing.deliverable.status;
 
+  if (user.role === "brand") {
+    const forbidden =
+      data.name !== undefined ||
+      data.postType !== undefined ||
+      data.contentBucket !== undefined ||
+      data.liveLink !== undefined ||
+      data.fileUrls !== undefined;
+    if (forbidden) {
+      return NextResponse.json(
+        { error: "Brands can only update caption, schedule, status, and revision requests" },
+        { status: 403 }
+      );
+    }
+  }
+
   const updatePayload: Partial<typeof deliverables.$inferInsert> = {
     updatedAt: new Date(),
   };
   if (data.name !== undefined) updatePayload.name = data.name;
   if (data.postType !== undefined) updatePayload.postType = data.postType;
+  if (data.contentBucket !== undefined) updatePayload.contentBucket = data.contentBucket || null;
   if (data.caption !== undefined) updatePayload.caption = data.caption;
   if (data.postingDate !== undefined) updatePayload.postingDate = data.postingDate;
   if (data.postingTime !== undefined) updatePayload.postingTime = data.postingTime;
@@ -198,6 +218,17 @@ export async function PATCH(
     .returning();
 
   if (data.fileUrls !== undefined) {
+    const oldFileRows = await db
+      .select({ url: deliverableFiles.url })
+      .from(deliverableFiles)
+      .where(eq(deliverableFiles.deliverableId, id))
+      .orderBy(asc(deliverableFiles.sortOrder));
+    const oldUrls = oldFileRows.map((r) => r.url);
+    const newUrls = data.fileUrls;
+    const filesChanged =
+      oldUrls.length !== newUrls.length ||
+      oldUrls.some((u, i) => u !== newUrls[i]);
+
     await db.delete(deliverableFiles).where(eq(deliverableFiles.deliverableId, id));
     for (let i = 0; i < data.fileUrls.length; i++) {
       await db.insert(deliverableFiles).values({
@@ -224,67 +255,100 @@ export async function PATCH(
             sortOrder: i,
           });
         }
+        if (filesChanged) {
+          await createNotificationForBrandUsers({
+            brandId: existing.brandId,
+            type: "new_content",
+            title: "Content updated",
+            message: `Files were updated for ${updated?.name ?? id}`,
+            deliverableId: id,
+            campaignId: existing.deliverable.campaignId,
+          });
+        }
       }
     }
   }
 
-  if (data.revisionNote && data.newFileUrls && data.newFileUrls.length > 0 && user.role === "brand") {
+  if (data.revisionNote && data.revisionNote.trim() && user.role === "brand") {
+    const note = data.revisionNote.trim();
+    const urls = (data.newFileUrls ?? []).filter(Boolean);
     const [rev] = await db
       .insert(revisions)
       .values({
         deliverableId: id,
-        revisionNote: data.revisionNote,
+        revisionNote: note,
         requestedBy: user.id,
       })
       .returning();
     if (rev) {
-      for (let i = 0; i < data.newFileUrls.length; i++) {
+      for (let i = 0; i < urls.length; i++) {
         await db.insert(revisionFiles).values({
           revisionId: rev.id,
-          url: data.newFileUrls[i],
+          url: urls[i],
           sortOrder: i,
         });
       }
     }
     await createNotificationForAdmins({
       type: "revision",
-      title: "Content Revised",
+      title: "Revision requested",
       message: `Revision requested for ${updated?.name ?? id}`,
       deliverableId: id,
       campaignId: existing.deliverable.campaignId,
     });
+    if (data.status === undefined) {
+      await db
+        .update(deliverables)
+        .set({ status: "In revision", updatedAt: new Date() })
+        .where(eq(deliverables.id, id));
+    }
   }
 
   if (data.status && data.status !== oldStatus) {
-    await createNotificationForAdmins({
-      type: "status_change",
-      title: "Status Changed",
-      message: `${updated?.name ?? id} status changed to ${data.status}`,
-      deliverableId: id,
-      campaignId: existing.deliverable.campaignId,
-    });
+    if (user.role === "brand") {
+      await createNotificationForAdmins({
+        type: "status_change",
+        title: "Status Changed",
+        message: `${updated?.name ?? id} status changed to ${data.status}`,
+        deliverableId: id,
+        campaignId: existing.deliverable.campaignId,
+      });
+    } else if (user.role === "admin") {
+      await createNotificationForBrandUsers({
+        brandId: existing.brandId,
+        type: "status_change",
+        title: "Status updated",
+        message: `${updated?.name ?? id} is now ${data.status}`,
+        deliverableId: id,
+        campaignId: existing.deliverable.campaignId,
+      });
+    }
   }
 
-  const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, updated!.campaignId)).limit(1);
+  const [latestRow] = await db.select().from(deliverables).where(eq(deliverables.id, id)).limit(1);
+  const out = latestRow ?? updated!;
+
+  const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, out.campaignId)).limit(1);
   const [brand] = await db.select().from(brands).where(eq(brands.id, campaign!.brandId)).limit(1);
   const fileRows = await db.select({ url: deliverableFiles.url }).from(deliverableFiles).where(eq(deliverableFiles.deliverableId, id)).orderBy(deliverableFiles.sortOrder);
 
   return NextResponse.json({
-    id: updated!.id,
-    name: updated!.name,
-    postType: updated!.postType,
+    id: out.id,
+    name: out.name,
+    postType: out.postType,
+    contentBucket: out.contentBucket ?? undefined,
     files: fileRows.map((f) => f.url),
-    caption: updated!.caption,
-    postingDate: updated!.postingDate,
-    postingTime: updated!.postingTime,
-    liveLink: updated!.liveLink ?? undefined,
-    campaignId: updated!.campaignId,
+    caption: out.caption,
+    postingDate: out.postingDate,
+    postingTime: out.postingTime,
+    liveLink: out.liveLink ?? undefined,
+    campaignId: out.campaignId,
     campaignName: campaign!.name,
     brandId: campaign!.brandId,
     brandName: brand!.name,
-    status: updated!.status,
+    status: out.status,
     comments: [],
-    createdAt: updated!.createdAt,
+    createdAt: out.createdAt,
     contentHistory: [],
     revisions: [],
   });

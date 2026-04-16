@@ -63,6 +63,7 @@ export const brands = pgTable("brands", {
   poc: varchar("poc", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull(),
   contactNumber: varchar("contact_number", { length: 50 }).notNull(),
+  contentBucket: varchar("content_bucket", { length: 255 }),
   instagramLink: varchar("instagram_link", { length: 512 }),
   instagramHandle: varchar("instagram_handle", { length: 255 }),
   youtubeLink: varchar("youtube_link", { length: 512 }),
@@ -72,6 +73,20 @@ export const brands = pgTable("brands", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Brand content buckets (one brand -> many bucket labels)
+export const brandContentBuckets = pgTable(
+  "brand_content_buckets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    brandId: uuid("brand_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("brand_content_buckets_brand_id_idx").on(t.brandId)]
+);
 
 // Campaigns
 export const campaigns = pgTable(
@@ -96,6 +111,7 @@ export const deliverables = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     name: varchar("name", { length: 255 }).notNull(),
     postType: postTypeEnum("post_type").notNull(),
+    contentBucket: varchar("content_bucket", { length: 255 }),
     caption: text("caption").notNull(),
     postingDate: varchar("posting_date", { length: 10 }).notNull(),
     postingTime: varchar("posting_time", { length: 10 }).notNull(),
@@ -262,6 +278,14 @@ export const brandsRelations = relations(brands, ({ many }) => ({
   users: many(users),
   campaigns: many(campaigns),
   socialMetrics: many(socialMetrics),
+  contentBuckets: many(brandContentBuckets),
+}));
+
+export const brandContentBucketsRelations = relations(brandContentBuckets, ({ one }) => ({
+  brand: one(brands, {
+    fields: [brandContentBuckets.brandId],
+    references: [brands.id],
+  }),
 }));
 
 export const campaignsRelations = relations(campaigns, ({ one, many }) => ({

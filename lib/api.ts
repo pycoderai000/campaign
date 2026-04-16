@@ -61,10 +61,4 @@ export async function uploadFiles(files: File[]): Promise<{ urls: string[] }> {
   return res.json();
 }
 
-/** Build full URL for file display (img/video src). Handles relative /api/files/ paths. */
-export function getFileDisplayUrl(url: string): string {
-  if (typeof window === "undefined") return url;
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  if (url.startsWith("/")) return `${window.location.origin}${url}`;
-  return `${window.location.origin}/${url}`;
-}
+export { getFileDisplayUrl } from "@/lib/file-display";

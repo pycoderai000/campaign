@@ -130,7 +130,9 @@ export default function CreateDeliverableForm({
             type="file"
             onChange={handleFileChange}
             required
-            multiple={formData.postType === "Carousel"}
+            multiple={
+              formData.postType === "Carousel" || formData.postType === "Static"
+            }
             accept="image/*,video/*"
             key={formData.postType}
             className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm file:mr-2 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-2 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 text-sm sm:text-base"

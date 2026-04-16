@@ -17,6 +17,7 @@ const postMetricSchema = z.object({
 /** GET /api/metrics?campaignId= optional. Returns campaign metrics for charts. */
 export async function GET(request: Request) {
   const user = await requireAuth();
+  if (user instanceof NextResponse) return user;
   const { searchParams } = new URL(request.url);
   const campaignIdParam = searchParams.get("campaignId") ?? undefined;
 
@@ -61,7 +62,8 @@ export async function GET(request: Request) {
 
 /** POST /api/metrics - store campaign metric (admin or system). */
 export async function POST(request: Request) {
-  await requireAuth("admin");
+  const auth = await requireAuth("admin");
+  if (auth instanceof NextResponse) return auth;
   const body = await request.json();
   const parsed = postMetricSchema.safeParse(body);
   if (!parsed.success) {

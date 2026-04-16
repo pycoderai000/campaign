@@ -22,12 +22,8 @@ function isAllowedMime(mime: string): boolean {
 }
 
 export async function POST(request: Request) {
-  try {
-    await requireAuth();
-  } catch (e) {
-    if (e instanceof Response) return e;
-    throw e;
-  }
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
 
   type FileLike = { size: number; name?: string; type?: string; arrayBuffer: () => Promise<ArrayBuffer> };
   let formData: FormData;

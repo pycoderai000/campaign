@@ -9,10 +9,11 @@ import {
   brands,
   deliverableFiles,
 } from "@/lib/db";
-import { createNotificationForAdmins } from "@/lib/notifications";
+import { createNotificationForAdmins, createNotificationForBrandUsers } from "@/lib/notifications";
 
 export async function GET(request: Request) {
   const user = await requireAuth();
+  if (user instanceof NextResponse) return user;
   const { searchParams } = new URL(request.url);
   const campaignId = searchParams.get("campaignId") ?? undefined;
   const brandId = searchParams.get("brandId") ?? undefined;
@@ -32,6 +33,7 @@ export async function GET(request: Request) {
         id: deliverables.id,
         name: deliverables.name,
         postType: deliverables.postType,
+        contentBucket: deliverables.contentBucket,
         caption: deliverables.caption,
         postingDate: deliverables.postingDate,
         postingTime: deliverables.postingTime,
@@ -72,6 +74,7 @@ export async function GET(request: Request) {
     id: r.id,
     name: r.name,
     postType: r.postType,
+    contentBucket: r.contentBucket ?? undefined,
     files: fileMap.get(r.id) ?? [],
     caption: r.caption,
     postingDate: r.postingDate,
@@ -92,7 +95,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  await requireAuth("admin");
+  const auth = await requireAuth("admin");
+  if (auth instanceof NextResponse) return auth;
   const body = await request.json();
   const parsed = createDeliverablesBulkSchema.safeParse(Array.isArray(body) ? body : [body]);
   if (!parsed.success) {
@@ -123,6 +127,7 @@ export async function POST(request: Request) {
       .values({
         name: item.name,
         postType: item.postType,
+        contentBucket: item.contentBucket || null,
         caption: item.caption,
         postingDate: item.postingDate,
         postingTime: item.postingTime,
@@ -150,10 +155,20 @@ export async function POST(request: Request) {
       campaignId: del.campaignId,
     });
 
+    await createNotificationForBrandUsers({
+      brandId: campaign.brandId,
+      type: "new_content",
+      title: "New deliverable",
+      message: `New deliverable "${item.name}" in ${campaign.name}`,
+      deliverableId: del.id,
+      campaignId: del.campaignId,
+    });
+
     created.push({
       id: del.id,
       name: del.name,
       postType: del.postType,
+      contentBucket: del.contentBucket ?? undefined,
       files: item.fileUrls ?? [],
       caption: del.caption,
       postingDate: del.postingDate,

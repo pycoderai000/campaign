@@ -55,3 +55,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+.brand-portal-credentials*.txt
+
+# Never commit AWS access key CSVs
+*accessKeys*.csv
+AyushAdmin_accessKeys.csv

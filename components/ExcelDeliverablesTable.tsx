@@ -7,6 +7,7 @@ import type { Deliverable, DeliverableStatus, PostType, FileOrUrl, Campaign } fr
 
 interface ExcelDeliverablesTableProps {
   campaigns: Campaign[];
+  brands: { id: string; name: string; contentBucket?: string; contentBuckets?: string[] }[];
   onSave: (deliverables: Deliverable[]) => void;
   onCancel: () => void;
 }
@@ -22,6 +23,7 @@ const statuses: DeliverableStatus[] = [
 
 export default function ExcelDeliverablesTable({
   campaigns,
+  brands,
   onSave,
   onCancel,
 }: ExcelDeliverablesTableProps) {
@@ -37,6 +39,10 @@ export default function ExcelDeliverablesTable({
       campaignName: campaigns[0]?.name || "",
       brandId: campaigns[0]?.brandId || "",
       brandName: campaigns[0]?.brandName || "",
+      contentBucket:
+        brands.find((b) => b.id === campaigns[0]?.brandId)?.contentBuckets?.[0] ||
+        brands.find((b) => b.id === campaigns[0]?.brandId)?.contentBucket ||
+        "",
       files: [],
     },
   ]);
@@ -58,6 +64,10 @@ export default function ExcelDeliverablesTable({
         campaignName: campaigns[0]?.name || "",
         brandId: campaigns[0]?.brandId || "",
         brandName: campaigns[0]?.brandName || "",
+        contentBucket:
+          brands.find((b) => b.id === campaigns[0]?.brandId)?.contentBuckets?.[0] ||
+          brands.find((b) => b.id === campaigns[0]?.brandId)?.contentBucket ||
+          "",
         files: [],
       },
     ]);
@@ -78,6 +88,10 @@ export default function ExcelDeliverablesTable({
         updated[index].campaignName = campaign.name;
         updated[index].brandId = campaign.brandId;
         updated[index].brandName = campaign.brandName;
+        updated[index].contentBucket =
+          brands.find((b) => b.id === campaign.brandId)?.contentBuckets?.[0] ||
+          brands.find((b) => b.id === campaign.brandId)?.contentBucket ||
+          "";
       }
     }
     
@@ -110,6 +124,7 @@ export default function ExcelDeliverablesTable({
         campaignName: row.campaignName!,
         brandId: row.brandId!,
         brandName: row.brandName!,
+        contentBucket: row.contentBucket || "",
         status: row.status!,
         comments: [],
         createdAt: new Date().toISOString(),
@@ -151,6 +166,7 @@ export default function ExcelDeliverablesTable({
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Date</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Time</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Status</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Bucket</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Upload</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">View</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Actions</th>
@@ -230,6 +246,31 @@ export default function ExcelDeliverablesTable({
                             {status}
                           </option>
                         ))}
+                      </select>
+                    </td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3">
+                      <select
+                        value={row.contentBucket || ""}
+                        onChange={(e) => updateRow(index, "contentBucket", e.target.value)}
+                        className="w-full min-w-[10rem] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm"
+                      >
+                        <option value="">No bucket selected</option>
+                        {(() => {
+                          const campaign = campaigns.find((c) => c.id === row.campaignId);
+                          const brand = campaign
+                            ? brands.find((b) => b.id === campaign.brandId)
+                            : undefined;
+                          const buckets = brand?.contentBuckets && brand.contentBuckets.length > 0
+                            ? brand.contentBuckets
+                            : brand?.contentBucket
+                            ? [brand.contentBucket]
+                            : [];
+                          return buckets.map((bucket) => (
+                            <option key={bucket} value={bucket}>
+                              {bucket}
+                            </option>
+                          ));
+                        })()}
                       </select>
                     </td>
                     <td className="px-2 sm:px-4 py-2 sm:py-3">

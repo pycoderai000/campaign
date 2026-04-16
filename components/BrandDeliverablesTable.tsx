@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import Modal from "./Modal";
 import ContentViewer from "./ContentViewer";
-import type { Deliverable, DeliverableStatus, FileOrUrl } from "@/types";
-import { getFileDisplayUrl, api } from "@/lib/api";
+import type { Deliverable, DeliverableStatus } from "@/types";
+import { api } from "@/lib/api";
+import { getFileDisplayUrl, isImageFileOrUrl } from "@/lib/file-display";
 
 interface BrandDeliverablesTableProps {
   deliverables: Deliverable[];
   onStatusChange?: (id: string, status: DeliverableStatus) => void;
   onCommentAdd?: (id: string, comment: string) => void;
   onEdit?: (deliverable: Deliverable) => void;
+  onRequestRevision?: (deliverable: Deliverable) => void;
 }
 
 export default function BrandDeliverablesTable({
@@ -18,6 +20,7 @@ export default function BrandDeliverablesTable({
   onStatusChange,
   onCommentAdd,
   onEdit,
+  onRequestRevision,
 }: BrandDeliverablesTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [detailCache, setDetailCache] = useState<Record<string, Deliverable>>({});
@@ -47,23 +50,16 @@ export default function BrandDeliverablesTable({
 
   const getThumbnail = (deliverable: Deliverable): string | null => {
     if (deliverable.files.length === 0) return null;
-    const firstFile: FileOrUrl = deliverable.files[0];
-    
-    // If it's a video post, don't try to use video URL as image thumbnail
     if (deliverable.postType === "Video post") {
-      return null; // Will show video placeholder icon
+      return null;
     }
-    
-    if (typeof firstFile === "string") {
-      if (firstFile.includes('.mp4') || firstFile.includes('.webm') || firstFile.includes('.mov') || firstFile.includes('video')) {
-        return null;
-      }
-      return getFileDisplayUrl(firstFile);
+    const img = deliverable.files.find(isImageFileOrUrl);
+    if (!img) return null;
+    if (typeof img === "string") return getFileDisplayUrl(img);
+    if (img instanceof File && img.type.startsWith("image/")) {
+      return URL.createObjectURL(img);
     }
-    if (firstFile instanceof File && firstFile.type.startsWith("image/")) {
-      return URL.createObjectURL(firstFile);
-    }
-    return null; // Video thumbnail would need to be generated
+    return null;
   };
 
   const formatDateTime = (date: string, time: string) => {
@@ -73,6 +69,13 @@ export default function BrandDeliverablesTable({
   const handleViewContent = (deliverable: Deliverable) => {
     setViewingDeliverable(deliverable);
     setShowContentViewer(true);
+    api
+      .get<Deliverable>(`/api/deliverables/${deliverable.id}`)
+      .then((full) => {
+        setDetailCache((c) => ({ ...c, [deliverable.id]: full }));
+        setViewingDeliverable((v) => (v?.id === deliverable.id ? full : v));
+      })
+      .catch(() => {});
   };
 
   return (
@@ -121,8 +124,8 @@ export default function BrandDeliverablesTable({
                 deliverables.map((deliverable) => {
                   const thumbnail = getThumbnail(deliverable);
                   return (
-                    <>
-                      <tr key={deliverable.id} id={`deliverable-${deliverable.id}`} className="hover:bg-indigo-50/50 transition-colors duration-150">
+                    <Fragment key={deliverable.id}>
+                      <tr id={`deliverable-${deliverable.id}`} className="hover:bg-indigo-50/50 transition-colors duration-150">
                         <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <div className="w-12 h-12 sm:w-16 sm:h-20 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                             {thumbnail ? (
@@ -212,7 +215,11 @@ export default function BrandDeliverablesTable({
                                   </h4>
                                   <div className="relative bg-black rounded-lg overflow-hidden">
                                     <video
-                                      src={typeof display.files[0] === "string" ? getFileDisplayUrl(display.files[0]) : URL.createObjectURL(display.files[0])}
+                                      src={
+                                        typeof display.files[0] === "string"
+                                          ? getFileDisplayUrl(display.files[0])
+                                          : URL.createObjectURL(display.files[0])
+                                      }
                                       controls
                                       className="w-full h-auto max-h-[400px]"
                                     />
@@ -226,6 +233,29 @@ export default function BrandDeliverablesTable({
                                 </h4>
                                 <p className="text-gray-700 leading-relaxed">{display.caption}</p>
                               </div>
+
+                              <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
+                                <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                                  <span>🗂️</span> Content Bucket
+                                </h4>
+                                <p className="text-gray-700">{display.contentBucket || "Not assigned"}</p>
+                              </div>
+
+                              {display.liveLink && (
+                                <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
+                                  <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                                    <span>🔗</span> Live Link
+                                  </h4>
+                                  <a
+                                    href={display.liveLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-indigo-600 hover:text-indigo-700 font-semibold hover:underline break-all"
+                                  >
+                                    {display.liveLink}
+                                  </a>
+                                </div>
+                              )}
 
                               {onStatusChange && (
                                 <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
@@ -248,6 +278,24 @@ export default function BrandDeliverablesTable({
                                     <option value="Live">Live</option>
                                     <option value="Cancelled">Cancelled</option>
                                   </select>
+                                </div>
+                              )}
+
+                              {onRequestRevision && (
+                                <div className="bg-amber-50/80 backdrop-blur-sm p-4 rounded-xl border border-amber-200">
+                                  <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                                    <span>✏️</span> Request a revision
+                                  </h4>
+                                  <p className="text-sm text-gray-600 mb-3">
+                                    Add revision notes (same as in Request revision). You can attach files in the next step.
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={() => onRequestRevision(display)}
+                                    className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 transition-colors"
+                                  >
+                                    Request revision
+                                  </button>
                                 </div>
                               )}
 
@@ -332,7 +380,7 @@ export default function BrandDeliverablesTable({
                           </td>
                         </tr>
                       ); })()}
-                    </>
+                    </Fragment>
                   );
                 })
               )}
@@ -352,6 +400,38 @@ export default function BrandDeliverablesTable({
       >
         {viewingDeliverable && (
           <div className="space-y-4">
+            {(onRequestRevision || onEdit) && (
+              <div className="flex justify-end gap-2 flex-wrap">
+                {onRequestRevision && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = viewingDeliverable;
+                      setShowContentViewer(false);
+                      setViewingDeliverable(null);
+                      if (d) onRequestRevision(d);
+                    }}
+                    className="px-4 py-2 bg-amber-100 text-amber-800 rounded-lg text-sm font-semibold hover:bg-amber-200 transition-colors"
+                  >
+                    Request revision
+                  </button>
+                )}
+                {onEdit && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = viewingDeliverable;
+                      setShowContentViewer(false);
+                      setViewingDeliverable(null);
+                      if (d) onEdit(d);
+                    }}
+                    className="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
+                  >
+                    Edit deliverable
+                  </button>
+                )}
+              </div>
+            )}
             <ContentViewer
               files={viewingDeliverable.files}
               postType={viewingDeliverable.postType}
@@ -360,6 +440,12 @@ export default function BrandDeliverablesTable({
             {/* Caption and Posting Date */}
             <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-4 sm:p-6 rounded-xl border border-indigo-200">
               <div className="space-y-3">
+                <div>
+                  <h4 className="text-sm sm:text-base font-bold text-gray-700 mb-2 flex items-center gap-2">
+                    <span>🗂️</span> Content Bucket
+                  </h4>
+                  <p className="text-sm sm:text-base text-gray-800">{viewingDeliverable.contentBucket || "Not assigned"}</p>
+                </div>
                 <div>
                   <h4 className="text-sm sm:text-base font-bold text-gray-700 mb-2 flex items-center gap-2">
                     <span>📝</span> Caption
@@ -374,6 +460,21 @@ export default function BrandDeliverablesTable({
                     {formatDateTime(viewingDeliverable.postingDate, viewingDeliverable.postingTime)}
                   </p>
                 </div>
+                {viewingDeliverable.liveLink && (
+                  <div>
+                    <h4 className="text-sm sm:text-base font-bold text-gray-700 mb-2 flex items-center gap-2">
+                      <span>🔗</span> Live Link
+                    </h4>
+                    <a
+                      href={viewingDeliverable.liveLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm sm:text-base text-indigo-700 hover:underline break-all"
+                    >
+                      {viewingDeliverable.liveLink}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           </div>

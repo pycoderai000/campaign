@@ -8,12 +8,8 @@ import { getInstagramBusinessAccountId } from "@/lib/meta-graph";
  * Sync only needs META_PAGE_ID + META_PAGE_ACCESS_TOKEN (same as lib/meta-graph).
  */
 export async function GET() {
-  try {
-    await requireAuth("admin");
-  } catch (e) {
-    if (e instanceof Response) return e;
-    throw e;
-  }
+  const auth = await requireAuth("admin");
+  if (auth instanceof NextResponse) return auth;
 
   const pageId = process.env.META_PAGE_ID;
   const token = process.env.META_PAGE_ACCESS_TOKEN;

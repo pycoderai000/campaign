@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth-options";
 
 export type SessionUser = {
@@ -21,20 +21,19 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   return { id: u.id, email: u.email, role: u.role, brandId: u.brandId ?? null, name: u.name ?? null };
 }
 
-/** Use in API routes: throws if not authenticated or wrong role. */
-export async function requireAuth(role?: "admin" | "brand"): Promise<SessionUser> {
+/**
+ * Use in API routes: returns the session user, or a JSON 401/403 response.
+ * Do not throw — Next.js 14 route handlers turn thrown Response into 500.
+ */
+export async function requireAuth(
+  role?: "admin" | "brand"
+): Promise<SessionUser | NextResponse> {
   const user = await getCurrentUser();
   if (!user) {
-    throw new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (role && user.role !== role) {
-    throw new Response(JSON.stringify({ error: "Forbidden" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   return user;
 }

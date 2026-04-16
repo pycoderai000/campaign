@@ -9,6 +9,8 @@ import ContentCalendar from "@/components/ContentCalendar";
 import NotificationBar from "@/components/NotificationBar";
 import Modal from "@/components/Modal";
 import BrandEditDeliverableForm from "@/components/BrandEditDeliverableForm";
+import BrandRequestRevisionForm from "@/components/BrandRequestRevisionForm";
+import DeliverableDetailModal from "@/components/DeliverableDetailModal";
 import type {
   Campaign,
   Deliverable,
@@ -22,8 +24,12 @@ import { defaultSocialMetrics } from "@/lib/social-metrics-defaults";
 export default function BrandDashboard() {
   const [activeView, setActiveView] = useState<"campaigns" | "metrics" | "social" | "calendar">("campaigns");
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
+  const [selectedCampaignForCalendar, setSelectedCampaignForCalendar] = useState<string | null>(null);
   const [showEditDeliverable, setShowEditDeliverable] = useState(false);
   const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null);
+  const [showRequestRevision, setShowRequestRevision] = useState(false);
+  const [revisionDeliverable, setRevisionDeliverable] = useState<Deliverable | null>(null);
+  const [deliverableDetailId, setDeliverableDetailId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,6 +103,13 @@ export default function BrandDashboard() {
     return () => { cancelled = true; };
   }, [fetchCampaigns, fetchDeliverables, fetchNotifications, fetchSocialMetrics]);
 
+  useEffect(() => {
+    const t = setInterval(() => {
+      fetchNotifications();
+    }, 60_000);
+    return () => clearInterval(t);
+  }, [fetchNotifications]);
+
   const handleStatusChange = async (id: string, status: DeliverableStatus) => {
     try {
       await api.patch(`/api/deliverables/${id}`, { status });
@@ -117,32 +130,61 @@ export default function BrandDashboard() {
     }
   };
 
-  const handleEdit = (deliverable: Deliverable) => {
-    setEditingDeliverable(deliverable);
+  const handleEdit = async (deliverable: Deliverable) => {
+    try {
+      const full = await api.get<Deliverable>(`/api/deliverables/${deliverable.id}`);
+      setEditingDeliverable(full);
+    } catch {
+      setEditingDeliverable(deliverable);
+    }
     setShowEditDeliverable(true);
   };
 
-  const handleUpdateDeliverable = async (data: Partial<Deliverable> & { revisionNote?: string; newFiles?: File[] }) => {
+  const openRequestRevision = async (deliverable: Deliverable) => {
+    try {
+      const full = await api.get<Deliverable>(`/api/deliverables/${deliverable.id}`);
+      setRevisionDeliverable(full);
+    } catch {
+      setRevisionDeliverable(deliverable);
+    }
+    setShowRequestRevision(true);
+  };
+
+  const handleUpdateDeliverable = async (data: Partial<Deliverable>) => {
     if (!data.id) return;
     try {
-      let newFileUrls: string[] | undefined;
-      if (data.newFiles && data.newFiles.length > 0) {
-        const { urls } = await uploadFiles(data.newFiles);
-        newFileUrls = urls;
-      }
       await api.patch(`/api/deliverables/${data.id}`, {
         caption: data.caption,
         postingDate: data.postingDate,
         postingTime: data.postingTime,
         status: data.status,
-        revisionNote: data.revisionNote,
-        newFileUrls,
       });
       setShowEditDeliverable(false);
       setEditingDeliverable(null);
       await Promise.all([fetchDeliverables(), fetchNotifications()]);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed to update deliverable");
+    }
+  };
+
+  const handleSubmitRevision = async (payload: { revisionNote: string; newFiles?: File[]; caption?: string }) => {
+    if (!revisionDeliverable?.id) return;
+    try {
+      let newFileUrls: string[] | undefined;
+      if (payload.newFiles && payload.newFiles.length > 0) {
+        const { urls } = await uploadFiles(payload.newFiles);
+        newFileUrls = urls;
+      }
+      await api.patch(`/api/deliverables/${revisionDeliverable.id}`, {
+        caption: payload.caption,
+        revisionNote: payload.revisionNote,
+        newFileUrls,
+      });
+      setShowRequestRevision(false);
+      setRevisionDeliverable(null);
+      await Promise.all([fetchDeliverables(), fetchNotifications()]);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to submit revision request");
     }
   };
 
@@ -285,6 +327,7 @@ export default function BrandDashboard() {
                     onStatusChange={handleStatusChange}
                     onCommentAdd={handleCommentAdd}
                     onEdit={handleEdit}
+                    onRequestRevision={openRequestRevision}
                   />
                 )}
               </div>
@@ -317,11 +360,40 @@ export default function BrandDashboard() {
 
         {activeView === "calendar" && (
           <div>
-            {selectedCampaign ? (
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-800">Content Calendar</h2>
+              {campaigns.length > 0 && (
+                <select
+                  value={selectedCampaignForCalendar ?? "all"}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedCampaignForCalendar(value === "all" ? null : value);
+                  }}
+                  className="px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white font-semibold text-sm sm:text-base"
+                >
+                  <option value="all">All campaigns</option>
+                  {campaigns.map((campaign) => (
+                    <option key={campaign.id} value={campaign.id}>
+                      {campaign.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            {campaigns.length > 0 ? (
               <ContentCalendar
-                key={selectedCampaign}
-                deliverables={deliverables.filter((d) => d.campaignId === selectedCampaign)}
-                campaignName={campaigns.find((c) => c.id === selectedCampaign)?.name || "Selected Campaign"}
+                key={selectedCampaignForCalendar || "all"}
+                deliverables={
+                  selectedCampaignForCalendar
+                    ? deliverables.filter((d) => d.campaignId === selectedCampaignForCalendar)
+                    : deliverables
+                }
+                campaignName={
+                  selectedCampaignForCalendar
+                    ? campaigns.find((c) => c.id === selectedCampaignForCalendar)?.name || "Selected Campaign"
+                    : "All campaigns"
+                }
+                onDeliverableClick={(d) => setDeliverableDetailId(d.id)}
               />
             ) : (
               <div className="bg-white/80 backdrop-blur-sm p-16 rounded-2xl shadow-soft text-center border border-gray-200">
@@ -330,14 +402,8 @@ export default function BrandDashboard() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <p className="text-gray-600 text-lg font-semibold mb-2">Select a Campaign</p>
-                <p className="text-gray-400 text-sm">Choose a campaign from the Campaigns view to see its content calendar</p>
-                <button
-                  onClick={() => setActiveView("campaigns")}
-                  className="mt-4 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg font-semibold"
-                >
-                  Go to Campaigns
-                </button>
+                <p className="text-gray-600 text-lg font-semibold mb-2">No campaigns found</p>
+                <p className="text-gray-400 text-sm">Campaign calendar will appear here once campaigns are available.</p>
               </div>
             )}
           </div>
@@ -353,6 +419,7 @@ export default function BrandDashboard() {
         >
           {editingDeliverable && (
             <BrandEditDeliverableForm
+              key={editingDeliverable.id}
               deliverable={editingDeliverable}
               onSubmit={handleUpdateDeliverable}
               onCancel={() => {
@@ -362,6 +429,39 @@ export default function BrandDashboard() {
             />
           )}
         </Modal>
+        <Modal
+          isOpen={showRequestRevision}
+          onClose={() => {
+            setShowRequestRevision(false);
+            setRevisionDeliverable(null);
+          }}
+          title="Request revision"
+        >
+          {revisionDeliverable && (
+            <BrandRequestRevisionForm
+              key={revisionDeliverable.id}
+              deliverable={revisionDeliverable}
+              onSubmit={handleSubmitRevision}
+              onCancel={() => {
+                setShowRequestRevision(false);
+                setRevisionDeliverable(null);
+              }}
+            />
+          )}
+        </Modal>
+        <DeliverableDetailModal
+          deliverableId={deliverableDetailId}
+          onClose={() => setDeliverableDetailId(null)}
+          onEdit={(d) => {
+            setDeliverableDetailId(null);
+            setEditingDeliverable(d);
+            setShowEditDeliverable(true);
+          }}
+          onRequestRevision={(d) => {
+            setDeliverableDetailId(null);
+            void openRequestRevision(d);
+          }}
+        />
       </div>
     </div>
   );

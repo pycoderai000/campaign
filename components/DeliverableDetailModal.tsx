@@ -10,6 +10,8 @@ interface DeliverableDetailModalProps {
   deliverableId: string | null;
   onClose: () => void;
   onEdit?: (deliverable: Deliverable) => void;
+  /** Brand portal: open revision flow (comments / optional files), not full edit */
+  onRequestRevision?: (deliverable: Deliverable) => void;
 }
 
 function formatDateTime(date: string, time: string) {
@@ -20,6 +22,7 @@ export default function DeliverableDetailModal({
   deliverableId,
   onClose,
   onEdit,
+  onRequestRevision,
 }: DeliverableDetailModalProps) {
   const [deliverable, setDeliverable] = useState<Deliverable | null>(null);
   const [loading, setLoading] = useState(false);
@@ -67,6 +70,10 @@ export default function DeliverableDetailModal({
             <p className="text-gray-800 font-medium">{deliverable.status}</p>
           </div>
           <div>
+            <span className="text-xs font-semibold text-gray-500">Content bucket</span>
+            <p className="text-gray-800 font-medium">{deliverable.contentBucket || "Not assigned"}</p>
+          </div>
+          <div>
             <span className="text-xs font-semibold text-gray-500">Posting date & time</span>
             <p className="text-gray-800">{formatDateTime(deliverable.postingDate, deliverable.postingTime)}</p>
           </div>
@@ -112,18 +119,32 @@ export default function DeliverableDetailModal({
               </ul>
             </div>
           )}
-          {onEdit && (
-            <div className="pt-4 border-t">
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onEdit(deliverable);
-                }}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
-              >
-                Edit deliverable
-              </button>
+          {(onEdit || onRequestRevision) && (
+            <div className="pt-4 border-t flex flex-wrap gap-2">
+              {onRequestRevision && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onRequestRevision(deliverable);
+                  }}
+                  className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium"
+                >
+                  Request revision
+                </button>
+              )}
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onEdit(deliverable);
+                  }}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+                >
+                  Edit deliverable
+                </button>
+              )}
             </div>
           )}
         </div>

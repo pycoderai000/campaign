@@ -3,7 +3,7 @@ import { eq, asc } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth";
 import { z } from "zod";
 import { db, comments, users, deliverables, campaigns, brands } from "@/lib/db";
-import { createNotificationForAdmins } from "@/lib/notifications";
+import { createNotificationForAdmins, createNotificationForBrandUsers } from "@/lib/notifications";
 
 const postCommentSchema = z.object({ text: z.string().min(1) });
 
@@ -12,6 +12,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await requireAuth();
+  if (user instanceof NextResponse) return user;
   const { id: deliverableId } = await params;
 
   const [del] = await db
@@ -53,13 +54,24 @@ export async function POST(
 
   const [author] = await db.select({ name: users.name }).from(users).where(eq(users.id, user.id)).limit(1);
 
-  await createNotificationForAdmins({
-    type: "new_comment",
-    title: "New Comment",
-    message: `New comment on ${del.name} by ${author?.name ?? user.email}`,
-    deliverableId,
-    campaignId: del.campaignId,
-  });
+  if (user.role === "admin") {
+    await createNotificationForBrandUsers({
+      brandId: del.brandId,
+      type: "new_comment",
+      title: "New comment",
+      message: `${author?.name ?? user.email} commented on ${del.name}`,
+      deliverableId,
+      campaignId: del.campaignId,
+    });
+  } else {
+    await createNotificationForAdmins({
+      type: "new_comment",
+      title: "New Comment",
+      message: `New comment on ${del.name} by ${author?.name ?? user.email}`,
+      deliverableId,
+      campaignId: del.campaignId,
+    });
+  }
 
   return NextResponse.json({
     id: inserted!.id,

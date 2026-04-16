@@ -22,6 +22,7 @@ const postSocialMetricSchema = z.object({
 /** GET /api/social-metrics?brandId= required for brand user, optional for admin. */
 export async function GET(request: Request) {
   const user = await requireAuth();
+  if (user instanceof NextResponse) return user;
   const { searchParams } = new URL(request.url);
   const brandIdParam = searchParams.get("brandId") ?? undefined;
 
@@ -62,6 +63,7 @@ export async function GET(request: Request) {
 /** POST /api/social-metrics - store social metric (admin or brand for own brand). */
 export async function POST(request: Request) {
   const user = await requireAuth();
+  if (user instanceof NextResponse) return user;
   const body = await request.json();
   const parsed = postSocialMetricSchema.safeParse(body);
   if (!parsed.success) {

@@ -181,17 +181,27 @@ export default function ContentCalendar({ deliverables, campaignName, onDelivera
                 >
                   <div className="text-xs sm:text-sm font-semibold text-gray-700 mb-1">{day}</div>
                   <div className="space-y-1 overflow-y-auto max-h-[calc(100%-20px)]">
-                    {dayDeliverables.map((deliverable) => (
-                      <div
-                        key={deliverable.id}
-                        role={onDeliverableClick ? "button" : undefined}
-                        onClick={() => onDeliverableClick?.(deliverable)}
-                        className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded truncate ${getStatusColor(deliverable.status)} ${onDeliverableClick ? "cursor-pointer hover:opacity-90" : ""}`}
-                        title={deliverable.name}
-                      >
-                        {deliverable.name}
-                      </div>
-                    ))}
+                    {dayDeliverables.map((deliverable) =>
+                      onDeliverableClick ? (
+                        <button
+                          key={deliverable.id}
+                          type="button"
+                          onClick={() => onDeliverableClick(deliverable)}
+                          className={`w-full text-left text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded truncate ${getStatusColor(deliverable.status)} cursor-pointer hover:opacity-90`}
+                          title={deliverable.name}
+                        >
+                          {deliverable.name}
+                        </button>
+                      ) : (
+                        <div
+                          key={deliverable.id}
+                          className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded truncate ${getStatusColor(deliverable.status)}`}
+                          title={deliverable.name}
+                        >
+                          {deliverable.name}
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
               );

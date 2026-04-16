@@ -8,6 +8,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await requireAuth();
+  if (user instanceof NextResponse) return user;
   const { id } = await params;
 
   const [updated] = await db

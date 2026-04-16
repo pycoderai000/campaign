@@ -5,8 +5,9 @@
  * Optional: S3_PUBLIC_URL, S3_ENDPOINT.
  */
 
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
+import { isSafeUploadsObjectKey } from "@/lib/s3-upload-key";
 
 const bucket = process.env.S3_BUCKET;
 const region = process.env.AWS_REGION || "us-east-1";
@@ -83,6 +84,7 @@ export async function uploadToS3(
       Key: key,
       Body: buffer,
       ContentType: resolved,
+      CacheControl: "public, max-age=31536000, immutable",
     })
   );
 
@@ -96,4 +98,23 @@ export async function uploadToS3(
 /** True when bucket is set (credentials may come from IAM role). */
 export function isS3Configured(): boolean {
   return !!bucket;
+}
+
+/**
+ * Stream an object from the configured bucket (for private buckets + authenticated /api/media).
+ */
+export async function getS3ObjectForKey(key: string) {
+  const client = getClient();
+  if (!client || !bucket) {
+    throw new Error("S3 is not configured");
+  }
+  if (!isSafeUploadsObjectKey(key)) {
+    throw new Error("Invalid key");
+  }
+  return client.send(
+    new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    })
+  );
 }

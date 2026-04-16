@@ -68,6 +68,9 @@ function LoginForm() {
             Campaign Management
           </h1>
           <p className="text-sm sm:text-base text-gray-600 font-medium mb-4">Sign in to your account</p>
+          <p className="text-xs text-gray-500 text-center mb-3 max-w-sm mx-auto leading-relaxed">
+            <strong>Brand users:</strong> use the email and password your administrator set when creating or editing your brand (Brand dashboard login). It is not the same as the brand contact email unless they match on purpose.
+          </p>
 
           <div className="flex rounded-xl bg-gray-100 p-1">
             <button

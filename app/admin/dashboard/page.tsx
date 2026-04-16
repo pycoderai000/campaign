@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/components/Sidebar";
 import NotificationBar from "@/components/NotificationBar";
 import Modal from "@/components/Modal";
-import CreateBrandForm from "@/components/CreateBrandForm";
+import CreateBrandForm, { type CreateBrandPayload } from "@/components/CreateBrandForm";
+import EditBrandForm from "@/components/EditBrandForm";
 import CreateCampaignForm from "@/components/CreateCampaignForm";
 import ExcelDeliverablesTable from "@/components/ExcelDeliverablesTable";
 import DeliverablesTable from "@/components/DeliverablesTable";
@@ -24,6 +25,8 @@ export default function AdminDashboard() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [selectedCampaignForCalendar, setSelectedCampaignForCalendar] = useState<Campaign | null>(null);
   const [showCreateBrand, setShowCreateBrand] = useState(false);
+  const [showEditBrand, setShowEditBrand] = useState(false);
+  const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [showCreateDeliverable, setShowCreateDeliverable] = useState(false);
   const [showEditDeliverable, setShowEditDeliverable] = useState(false);
@@ -103,14 +106,32 @@ export default function AdminDashboard() {
     { label: "Content Calendar", href: "#", onClick: () => setActiveView("calendar"), viewKey: "calendar" },
   ];
 
-  const handleCreateBrand = async (brandData: Omit<Brand, "id" | "createdAt">) => {
+  const handleCreateBrand = async (brandData: CreateBrandPayload) => {
     try {
-      await api.post<Brand>("/api/brands", brandData);
+      const { portalLoginEmail, portalLoginPassword, ...rest } = brandData;
+      const pe = portalLoginEmail?.trim() ?? "";
+      const pp = portalLoginPassword?.trim() ?? "";
+      const payload: Record<string, unknown> = { ...rest };
+      if (pe && pp) {
+        payload.portalLoginEmail = pe;
+        payload.portalLoginPassword = pp;
+      }
+      const res = await api.post<Brand & { portalUserCreated?: boolean }>("/api/brands", payload);
       setShowCreateBrand(false);
       await fetchBrands();
+      if (res.portalUserCreated) {
+        alert("Brand created. The brand can sign in using Brand Login with the portal email and password you set.");
+      }
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed to create brand");
     }
+  };
+
+  const handleUpdateBrand = async (updated: Brand) => {
+    setShowEditBrand(false);
+    setEditingBrand(null);
+    setBrands((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+    await fetchBrands();
   };
 
   const handleCreateCampaign = async (campaignData: Omit<Campaign, "id" | "createdAt">) => {
@@ -129,7 +150,7 @@ export default function AdminDashboard() {
       return;
     }
     try {
-      const payload: { name: string; postType: string; caption: string; postingDate: string; postingTime: string; campaignId: string; fileUrls: string[]; status: string; liveLink?: string }[] = [];
+      const payload: { name: string; postType: string; contentBucket?: string; caption: string; postingDate: string; postingTime: string; campaignId: string; fileUrls: string[]; status: string; liveLink?: string }[] = [];
       for (const d of newDeliverables) {
         const campaign = campaigns.find((c) => c.id === d.campaignId);
         if (!campaign) {
@@ -142,13 +163,14 @@ export default function AdminDashboard() {
         const existingUrls = files.filter((f): f is string => typeof f === "string");
         if (toUpload.length > 0) {
           const { urls } = await uploadFiles(toUpload);
-          fileUrls = urls;
+          fileUrls = [...existingUrls, ...urls];
         } else {
           fileUrls = existingUrls;
         }
         payload.push({
           name: d.name,
           postType: d.postType,
+          contentBucket: d.contentBucket || "",
           caption: d.caption,
           postingDate: d.postingDate,
           postingTime: d.postingTime,
@@ -182,6 +204,7 @@ export default function AdminDashboard() {
       await api.patch<Deliverable>(`/api/deliverables/${updated.id}`, {
         name: updated.name,
         postType: updated.postType,
+        contentBucket: updated.contentBucket || "",
         caption: updated.caption,
         postingDate: updated.postingDate,
         postingTime: updated.postingTime,
@@ -197,8 +220,14 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleEditDeliverable = (deliverable: Deliverable) => {
-    setEditingDeliverable(deliverable);
+  const handleEditDeliverable = async (deliverable: Deliverable) => {
+    try {
+      await fetchBrands();
+      const full = await api.get<Deliverable>(`/api/deliverables/${deliverable.id}`);
+      setEditingDeliverable(full);
+    } catch {
+      setEditingDeliverable(deliverable);
+    }
     setShowEditDeliverable(true);
   };
 
@@ -312,11 +341,23 @@ export default function AdminDashboard() {
                     key={brand.id}
                     className="group bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-soft hover:shadow-hover transition-all duration-300 border border-gray-200 hover:border-indigo-300 transform hover:-translate-y-1"
                   >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <div className="flex items-start justify-between mb-4 gap-2">
+                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shrink-0">
                         <span className="text-2xl">🏢</span>
                       </div>
-                      <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">Active</span>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">Active</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingBrand(brand);
+                            setShowEditBrand(true);
+                          }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 transition-colors"
+                        >
+                          Edit
+                        </button>
+                      </div>
                     </div>
                     <h3 className="text-xl font-bold text-slate-800 mb-4 group-hover:text-indigo-600 transition-colors">
                       {brand.name}
@@ -353,6 +394,21 @@ export default function AdminDashboard() {
                         <div>
                           <p className="text-gray-500 text-xs">Contact</p>
                           <p className="text-gray-800 font-semibold">{brand.contactNumber}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm">
+                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4m16 0l-4-4m4 4l-4 4M8 8h.01M8 16h.01" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 text-xs">Content Buckets</p>
+                          <p className="text-gray-800 font-semibold">
+                            {brand.contentBuckets && brand.contentBuckets.length > 0
+                              ? brand.contentBuckets.join(", ")
+                              : brand.contentBucket || "Not set"}
+                          </p>
                         </div>
                       </div>
                       <div className="mt-4 pt-4 border-t border-gray-200">
@@ -397,6 +453,7 @@ export default function AdminDashboard() {
                 <DeliverablesTable
                   deliverables={deliverables.filter((d) => d.campaignId === selectedCampaign.id)}
                   onEdit={handleEditDeliverable}
+                  showEdit={true}
                   showComments={true}
                 />
               </div>
@@ -515,6 +572,7 @@ export default function AdminDashboard() {
             {showCreateDeliverable ? (
               <ExcelDeliverablesTable
                 campaigns={campaigns}
+                brands={brands}
                 onSave={handleCreateDeliverables}
                 onCancel={() => setShowCreateDeliverable(false)}
               />
@@ -522,6 +580,7 @@ export default function AdminDashboard() {
               <DeliverablesTable
                 deliverables={deliverables}
                 onEdit={handleEditDeliverable}
+                showEdit={true}
                 showComments={true}
               />
             )}
@@ -598,6 +657,26 @@ export default function AdminDashboard() {
         </Modal>
 
         <Modal
+          isOpen={showEditBrand}
+          onClose={() => {
+            setShowEditBrand(false);
+            setEditingBrand(null);
+          }}
+          title="Edit brand"
+        >
+          {editingBrand && (
+            <EditBrandForm
+              brand={editingBrand}
+              onSaved={handleUpdateBrand}
+              onCancel={() => {
+                setShowEditBrand(false);
+                setEditingBrand(null);
+              }}
+            />
+          )}
+        </Modal>
+
+        <Modal
           isOpen={showCreateCampaign}
           onClose={() => setShowCreateCampaign(false)}
           title="Create Campaign"
@@ -619,7 +698,22 @@ export default function AdminDashboard() {
         >
           {editingDeliverable && (
             <EditDeliverableForm
+              key={editingDeliverable.id}
               deliverable={editingDeliverable}
+              bucketOptions={(() => {
+                const resolvedBrandId =
+                  editingDeliverable.brandId ||
+                  campaigns.find((c) => c.id === editingDeliverable.campaignId)?.brandId;
+                const brand = brands.find((b) => b.id === resolvedBrandId);
+                if (!brand) return [];
+                const buckets =
+                  brand.contentBuckets && brand.contentBuckets.length > 0
+                    ? brand.contentBuckets
+                    : brand.contentBucket
+                    ? [brand.contentBucket]
+                    : [];
+                return buckets;
+              })()}
               onSubmit={handleUpdateDeliverable}
               onCancel={() => {
                 setShowEditDeliverable(false);
@@ -632,10 +726,9 @@ export default function AdminDashboard() {
         <DeliverableDetailModal
           deliverableId={deliverableDetailId}
           onClose={() => setDeliverableDetailId(null)}
-          onEdit={(d) => {
+          onEdit={async (d) => {
             setDeliverableDetailId(null);
-            setEditingDeliverable(d);
-            setShowEditDeliverable(true);
+            await handleEditDeliverable(d);
           }}
         />
       </div>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { Deliverable, PostType, DeliverableStatus } from "@/types";
 
 interface EditDeliverableFormProps {
   deliverable: Deliverable;
+  bucketOptions?: string[];
   onSubmit: (data: Deliverable) => void;
   onCancel: () => void;
 }
@@ -20,12 +21,14 @@ const statuses: DeliverableStatus[] = [
 
 export default function EditDeliverableForm({
   deliverable,
+  bucketOptions = [],
   onSubmit,
   onCancel,
 }: EditDeliverableFormProps) {
   const [formData, setFormData] = useState({
     name: deliverable.name,
     postType: deliverable.postType,
+    contentBucket: deliverable.contentBucket || "",
     files: deliverable.files,
     caption: deliverable.caption,
     postingDate: deliverable.postingDate,
@@ -35,12 +38,16 @@ export default function EditDeliverableForm({
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFormData({
-        ...formData,
-        files: Array.from(e.target.files),
+    if (e.target.files && e.target.files.length > 0) {
+      const picked = Array.from(e.target.files);
+      setFormData((prev) => {
+        const keptUrls = prev.files.filter(
+          (f): f is string => typeof f === "string"
+        );
+        return { ...prev, files: [...keptUrls, ...picked] };
       });
     }
+    e.target.value = "";
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -74,8 +81,9 @@ export default function EditDeliverableForm({
           value={formData.postType}
           onChange={(e) => {
             const newPostType = e.target.value as PostType;
-            // If switching to/from Carousel, reset files
-            if ((newPostType === "Carousel") !== (formData.postType === "Carousel")) {
+            const involvesVideo =
+              newPostType === "Video post" || formData.postType === "Video post";
+            if (involvesVideo && newPostType !== formData.postType) {
               setFormData({ ...formData, postType: newPostType, files: [] });
             } else {
               setFormData({ ...formData, postType: newPostType });
@@ -94,14 +102,36 @@ export default function EditDeliverableForm({
 
       <div>
         <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+          Content Bucket
+        </label>
+        <select
+          value={formData.contentBucket}
+          onChange={(e) =>
+            setFormData({ ...formData, contentBucket: e.target.value })
+          }
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer text-sm sm:text-base"
+        >
+          <option value="">No bucket selected</option>
+          {[...new Set([...(formData.contentBucket ? [formData.contentBucket] : []), ...bucketOptions])].map((bucket) => (
+            <option key={bucket} value={bucket}>
+              {bucket}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
           File Upload <span className="text-gray-500 text-xs">(Video, Single Image, or Multiple Images)</span>
         </label>
         <input
           type="file"
           onChange={handleFileChange}
-          multiple={formData.postType === "Carousel"}
+          multiple={
+            formData.postType === "Carousel" || formData.postType === "Static"
+          }
           accept="image/*,video/*"
-          key={`${formData.postType}-${formData.files.length}`}
+          key={formData.postType}
           className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
         />
         {formData.files.length > 0 && (

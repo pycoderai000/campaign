@@ -6,6 +6,7 @@ const status = z.enum(["New content", "In revision", "Approved", "Live", "Cancel
 export const createDeliverableSchema = z.object({
   name: z.string().min(1).max(255),
   postType,
+  contentBucket: z.string().max(255).optional().or(z.literal("")),
   caption: z.string(),
   postingDate: z.string().min(1).max(10),
   postingTime: z.string().min(1).max(10),
@@ -20,6 +21,7 @@ export const createDeliverablesBulkSchema = z.array(createDeliverableSchema);
 export const updateDeliverableSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   postType: postType.optional(),
+  contentBucket: z.string().max(255).optional().or(z.literal("")),
   caption: z.string().optional(),
   postingDate: z.string().min(1).max(10).optional(),
   postingTime: z.string().min(1).max(10).optional(),
@@ -27,6 +29,7 @@ export const updateDeliverableSchema = z.object({
   status: status.optional(),
   fileUrls: z.array(z.string().min(1)).optional(),
   revisionNote: z.string().optional(),
+  /** Brand revision uploads (optional; revision can be text-only) */
   newFileUrls: z.array(z.string().min(1)).optional(),
 });
 

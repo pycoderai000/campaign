@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import PostMetrics from "./PostMetrics";
 import ContentViewer from "./ContentViewer";
 import Modal from "./Modal";
 import type { Deliverable, DeliverableStatus } from "@/types";
 import { api } from "@/lib/api";
+import { getFileDisplayUrl, isImageFileOrUrl } from "@/lib/file-display";
 
 interface DeliverablesTableProps {
   deliverables: Deliverable[];
@@ -55,6 +56,15 @@ export default function DeliverablesTable({
     return `${new Date(date).toLocaleDateString()} ${time}`;
   };
 
+  const getThumbnail = (deliverable: Deliverable): string | null => {
+    if (!deliverable.files?.length) return null;
+    if (deliverable.postType === "Video post") return null;
+    const img = deliverable.files.find(isImageFileOrUrl);
+    if (!img) return null;
+    if (typeof img === "string") return getFileDisplayUrl(img);
+    return null;
+  };
+
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-soft overflow-hidden border border-gray-200">
       <div className="overflow-x-auto -mx-4 sm:mx-0">
@@ -62,6 +72,9 @@ export default function DeliverablesTable({
           <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gradient-to-r from-indigo-50 to-purple-50">
             <tr>
+              <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-16 sm:w-20">
+                Thumb
+              </th>
               <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                 Deliverable Name
               </th>
@@ -88,7 +101,7 @@ export default function DeliverablesTable({
           <tbody className="bg-white divide-y divide-gray-100">
             {deliverables.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center">
+                <td colSpan={8} className="px-6 py-12 text-center">
                   <div className="flex flex-col items-center">
                     <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center mb-4">
                       <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,18 +113,33 @@ export default function DeliverablesTable({
                 </td>
               </tr>
             ) : (
-              deliverables.map((deliverable) => (
-                <>
-                  <tr key={deliverable.id} id={`deliverable-${deliverable.id}`} className="hover:bg-indigo-50/50 transition-colors duration-150">
+              deliverables.map((deliverable) => {
+                const thumb = getThumbnail(deliverable);
+                return (
+                <Fragment key={deliverable.id}>
+                  <tr id={`deliverable-${deliverable.id}`} className="hover:bg-indigo-50/50 transition-colors duration-150">
                     <td className="px-3 sm:px-6 py-3 sm:py-4">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <span className="text-base sm:text-lg">📦</span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-xs sm:text-sm font-semibold text-gray-900 block truncate">{deliverable.name}</span>
-                          <span className="text-xs text-gray-500 sm:hidden">{deliverable.campaignName}</span>
-                        </div>
+                      <div className="w-12 h-12 sm:w-16 sm:h-20 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                        {thumb ? (
+                          <img src={thumb} alt="" className="w-full h-full object-cover" />
+                        ) : deliverable.postType === "Video post" ? (
+                          <div className="relative w-full h-full flex items-center justify-center bg-gray-200">
+                            <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                            <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 rounded">Video</span>
+                          </div>
+                        ) : (
+                          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <div className="min-w-0">
+                        <span className="text-xs sm:text-sm font-semibold text-gray-900 block truncate">{deliverable.name}</span>
+                        <span className="text-xs text-gray-500 sm:hidden">{deliverable.campaignName}</span>
                       </div>
                     </td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
@@ -140,8 +168,21 @@ export default function DeliverablesTable({
                     <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                       <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
                         <button
+                          type="button"
                           onClick={() => {
                             setViewingDeliverable(deliverable);
+                            api
+                              .get<Deliverable>(`/api/deliverables/${deliverable.id}`)
+                              .then((full) => {
+                                setDetailCache((c) => ({
+                                  ...c,
+                                  [deliverable.id]: full,
+                                }));
+                                setViewingDeliverable((v) =>
+                                  v?.id === deliverable.id ? full : v
+                                );
+                              })
+                              .catch(() => {});
                           }}
                           className="px-2 sm:px-3 py-1 sm:py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-200 transition-colors"
                         >
@@ -181,13 +222,19 @@ export default function DeliverablesTable({
                     const display = detailCache[deliverable.id] || deliverable;
                     return (
                     <tr>
-                      <td colSpan={7} className="px-6 py-6 bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
+                      <td colSpan={8} className="px-6 py-6 bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
                         <div className="space-y-6">
                           <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
                             <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
                               <span>📝</span> Caption
                             </h4>
                             <p className="text-gray-700 leading-relaxed">{display.caption}</p>
+                          </div>
+                          <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
+                            <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                              <span>🗂️</span> Content Bucket
+                            </h4>
+                            <p className="text-gray-700">{display.contentBucket || "Not assigned"}</p>
                           </div>
                           {display.files.length > 0 && (
                             <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-indigo-100">
@@ -207,7 +254,7 @@ export default function DeliverablesTable({
                                 <span>🔗</span> Live Link
                               </h4>
                               <a
-                                href={deliverable.liveLink}
+                                href={display.liveLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-indigo-600 hover:text-indigo-700 font-semibold hover:underline flex items-center gap-2"
@@ -328,13 +375,14 @@ export default function DeliverablesTable({
                   })()}
                   {showMetrics === deliverable.id && (
                     <tr>
-                      <td colSpan={7} className="px-6 py-4 bg-gray-50">
+                      <td colSpan={8} className="px-6 py-4 bg-gray-50">
                         <PostMetrics deliverable={deliverable} />
                       </td>
                     </tr>
                   )}
-                </>
-              ))
+                </Fragment>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -349,6 +397,21 @@ export default function DeliverablesTable({
           title={viewingDeliverable.name}
         >
           <div className="space-y-6">
+            {showEdit && onEdit && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = viewingDeliverable;
+                    setViewingDeliverable(null);
+                    if (d) onEdit(d);
+                  }}
+                  className="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
+                >
+                  Edit deliverable
+                </button>
+              </div>
+            )}
             <ContentViewer
               files={viewingDeliverable.files}
               postType={viewingDeliverable.postType}
@@ -356,6 +419,12 @@ export default function DeliverablesTable({
             />
             <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-4 sm:p-6 rounded-xl border border-indigo-100">
               <div className="space-y-4">
+                <div>
+                  <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2 text-sm sm:text-base">
+                    <span>🗂️</span> Content Bucket
+                  </h4>
+                  <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{viewingDeliverable.contentBucket || "Not assigned"}</p>
+                </div>
                 <div>
                   <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2 text-sm sm:text-base">
                     <span>📝</span> Caption
@@ -370,6 +439,21 @@ export default function DeliverablesTable({
                     {formatDateTime(viewingDeliverable.postingDate, viewingDeliverable.postingTime)}
                   </p>
                 </div>
+                {viewingDeliverable.liveLink && (
+                  <div>
+                    <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2 text-sm sm:text-base">
+                      <span>🔗</span> Live Link
+                    </h4>
+                    <a
+                      href={viewingDeliverable.liveLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-600 hover:text-indigo-700 font-semibold hover:underline break-all text-sm sm:text-base"
+                    >
+                      {viewingDeliverable.liveLink}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           </div>

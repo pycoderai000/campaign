@@ -6,6 +6,8 @@ export interface Brand {
   poc: string;
   email: string;
   contactNumber: string;
+  contentBucket?: string; // legacy single-bucket field
+  contentBuckets?: string[];
   instagramLink?: string;
   instagramHandle?: string;
   youtubeLink?: string;
@@ -58,6 +60,7 @@ export interface Deliverable {
   id: string;
   name: string;
   postType: PostType;
+  contentBucket?: string;
   files: FileOrUrl[];
   caption: string;
   postingDate: string;

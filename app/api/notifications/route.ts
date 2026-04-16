@@ -5,6 +5,7 @@ import { db, notifications } from "@/lib/db";
 
 export async function GET(request: Request) {
   const user = await requireAuth();
+  if (user instanceof NextResponse) return user;
   const { searchParams } = new URL(request.url);
   const readParam = searchParams.get("read");
   const limit = Math.min(Number(searchParams.get("limit")) || 50, 100);

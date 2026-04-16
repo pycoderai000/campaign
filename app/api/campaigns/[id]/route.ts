@@ -9,6 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await requireAuth();
+  if (user instanceof NextResponse) return user;
   const { id } = await params;
   const [row] = await db
     .select({
@@ -36,7 +37,8 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  await requireAuth("admin");
+  const auth = await requireAuth("admin");
+  if (auth instanceof NextResponse) return auth;
   const { id } = await params;
   const body = await request.json();
   const parsed = updateCampaignSchema.safeParse(body);
