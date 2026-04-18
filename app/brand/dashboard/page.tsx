@@ -277,7 +277,7 @@ export default function BrandDashboard() {
             <div className="mb-4 sm:mb-6">
               <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">Web Feed</h2>
               <p className="text-sm sm:text-base text-gray-600">
-                Daily monitored content from the websites, news sources, and leadership pages configured for your brand.
+                Daily monitored content from the websites, news sources, leadership pages, Instagram profiles, and LinkedIn pages configured for your brand.
               </p>
             </div>
             <BrandMonitoringFeed items={feedItems} />

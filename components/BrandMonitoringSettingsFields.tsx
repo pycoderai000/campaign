@@ -17,6 +17,8 @@ const sourceTypes: { value: BrandMonitoringSourceType; label: string }[] = [
   { value: "news", label: "News" },
   { value: "website", label: "Website" },
   { value: "leadership", label: "Leadership" },
+  { value: "instagram", label: "Instagram" },
+  { value: "linkedin", label: "LinkedIn" },
 ];
 
 function createEmptySource(): BrandMonitoringSource {
@@ -57,7 +59,7 @@ export default function BrandMonitoringSettingsFields({
         <div>
           <h3 className="text-base sm:text-lg font-bold text-gray-800">Daily web monitoring</h3>
           <p className="text-xs sm:text-sm text-gray-600 mt-1">
-            Add the companies/entities and the information to monitor. The sync runs once daily at the selected server time.
+            Add the companies/entities and the information to monitor across news, websites, leadership pages, Instagram, and LinkedIn. The sync runs once daily at the selected server time.
           </p>
         </div>
         <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -86,7 +88,27 @@ export default function BrandMonitoringSettingsFields({
       <div className="space-y-4">
         {sources.map((source, index) => {
           const sourceType = source.sourceType ?? "news";
-          const needsUrl = sourceType === "website" || sourceType === "leadership";
+          const needsTarget = sourceType !== "news";
+          const targetLabel =
+            sourceType === "instagram"
+              ? "Instagram profile URL or username"
+              : sourceType === "linkedin"
+              ? "LinkedIn company/profile URL"
+              : "Source URL";
+          const targetPlaceholder =
+            sourceType === "news"
+              ? "Optional: company news page or RSS URL"
+              : sourceType === "instagram"
+              ? "Required: https://instagram.com/company or @company"
+              : sourceType === "linkedin"
+              ? "Required: https://www.linkedin.com/company/company-name/"
+              : "Required: official website / leadership page / newsroom URL";
+          const queryPlaceholder =
+            sourceType === "instagram"
+              ? "Optional: campaign keywords, hashtags, or topics to prioritize in captions"
+              : sourceType === "linkedin"
+              ? "Optional: campaign keywords or topics to prioritize in company posts"
+              : "Example: announcements, funding, tenders, official updates, leadership news";
           return (
             <div key={index} className="rounded-2xl border border-gray-200 bg-white/70 p-4 space-y-3">
               <div className="flex items-center justify-between gap-3">
@@ -143,24 +165,25 @@ export default function BrandMonitoringSettingsFields({
                   type="text"
                   value={source.query ?? ""}
                   onChange={(e) => updateSource(index, { query: e.target.value })}
-                  placeholder="Example: announcements, funding, tenders, official updates, leadership news"
+                  placeholder={queryPlaceholder}
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white text-sm sm:text-base"
                 />
               </div>
 
               <div>
                 <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-                  Source URL {needsUrl ? <span className="text-red-500">*</span> : <span className="text-gray-500 text-xs">(optional)</span>}
+                  {targetLabel}{" "}
+                  {needsTarget ? (
+                    <span className="text-red-500">*</span>
+                  ) : (
+                    <span className="text-gray-500 text-xs">(optional)</span>
+                  )}
                 </label>
                 <input
-                  type="url"
+                  type={sourceType === "instagram" ? "text" : "url"}
                   value={source.sourceUrl ?? ""}
                   onChange={(e) => updateSource(index, { sourceUrl: e.target.value })}
-                  placeholder={
-                    sourceType === "news"
-                      ? "Optional: company news page or RSS URL"
-                      : "Required: official website / leadership page / newsroom URL"
-                  }
+                  placeholder={targetPlaceholder}
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white text-sm sm:text-base"
                 />
               </div>

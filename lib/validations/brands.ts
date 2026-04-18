@@ -1,20 +1,79 @@
 import { z } from "zod";
 
+function isValidAbsoluteUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function isInstagramHandle(value: string) {
+  return /^@?[a-zA-Z0-9._]{1,30}$/.test(value.trim());
+}
+
 const monitoringSourceSchema = z
   .object({
     name: z.string().min(1).max(255),
-    sourceType: z.enum(["website", "news", "leadership"]),
-    sourceUrl: z.string().url().max(1024).optional().or(z.literal("")),
+    sourceType: z.enum(["website", "news", "leadership", "instagram", "linkedin"]),
+    sourceUrl: z.string().max(1024).optional().or(z.literal("")),
     query: z.string().max(512).optional().or(z.literal("")),
     isActive: z.boolean().optional().default(true),
     sortOrder: z.number().int().min(0).optional(),
   })
   .superRefine((data, ctx) => {
-    if ((data.sourceType === "website" || data.sourceType === "leadership") && !(data.sourceUrl ?? "").trim()) {
+    const sourceUrl = (data.sourceUrl ?? "").trim();
+
+    if (
+      (data.sourceType === "website" ||
+        data.sourceType === "leadership" ||
+        data.sourceType === "linkedin") &&
+      !sourceUrl
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["sourceUrl"],
-        message: "Website and leadership sources require a source URL",
+        message:
+          data.sourceType === "linkedin"
+            ? "LinkedIn sources require a public company/profile URL"
+            : "Website and leadership sources require a source URL",
+      });
+    }
+
+    if (
+      sourceUrl &&
+      (data.sourceType === "website" ||
+        data.sourceType === "news" ||
+        data.sourceType === "leadership" ||
+        data.sourceType === "linkedin") &&
+      !isValidAbsoluteUrl(sourceUrl)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["sourceUrl"],
+        message: "Enter a valid public URL",
+      });
+    }
+
+    if (data.sourceType === "instagram" && !sourceUrl) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["sourceUrl"],
+        message: "Instagram sources require a public profile URL or username",
+      });
+    }
+
+    if (
+      data.sourceType === "instagram" &&
+      sourceUrl &&
+      !isValidAbsoluteUrl(sourceUrl) &&
+      !isInstagramHandle(sourceUrl)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["sourceUrl"],
+        message: "Enter a valid Instagram profile URL or username",
       });
     }
   });

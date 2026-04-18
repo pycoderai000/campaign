@@ -15,7 +15,7 @@ function normalizeBuckets(input: { contentBucket?: string; contentBuckets?: stri
 function normalizeMonitoringSources(input: {
   monitoringSources?: {
     name: string;
-    sourceType: "website" | "news" | "leadership";
+    sourceType: "website" | "news" | "leadership" | "instagram" | "linkedin";
     sourceUrl?: string;
     query?: string;
     isActive?: boolean;

@@ -15,7 +15,7 @@ type MonitoringSourceRow = {
   id: string;
   brandId: string;
   name: string;
-  sourceType: "website" | "news" | "leadership";
+  sourceType: "website" | "news" | "leadership" | "instagram" | "linkedin";
   sourceUrl: string | null;
   query: string | null;
   isActive: boolean;
@@ -30,7 +30,7 @@ export type MonitoringFeedItem = {
   id: string;
   brandId: string;
   sourceId?: string;
-  sourceType: "website" | "news" | "leadership";
+  sourceType: "website" | "news" | "leadership" | "instagram" | "linkedin";
   title: string;
   summary?: string;
   url: string;
@@ -63,6 +63,11 @@ const RSS_PARSER = new XMLParser({
 
 const DEFAULT_APIFY_WEBSITE_ACTOR_ID =
   process.env.APIFY_WEBSITE_ACTOR_ID || "apify/website-content-crawler";
+const DEFAULT_APIFY_INSTAGRAM_ACTOR_ID =
+  process.env.APIFY_INSTAGRAM_ACTOR_ID || "instagram-scraper/instagram-profile-posts-scraper";
+const DEFAULT_APIFY_LINKEDIN_ACTOR_ID =
+  process.env.APIFY_LINKEDIN_ACTOR_ID || "harvestapi/linkedin-company-posts";
+const SOCIAL_POST_LIMIT = 6;
 const SOURCE_COOLDOWN_HOURS = Math.max(
   1,
   Number(process.env.MONITORING_SOURCE_COOLDOWN_HOURS ?? "18")
@@ -83,6 +88,13 @@ function normalizeUrl(value: string, base?: string) {
 }
 
 function parsePublishedDate(value: unknown): Date | undefined {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? undefined : value;
+  }
+  if (typeof value === "number") {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  }
   if (typeof value !== "string" || !value.trim()) return undefined;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
@@ -92,6 +104,34 @@ function createFingerprint(parts: Array<string | undefined>) {
   return createHash("sha256")
     .update(parts.filter(Boolean).join("\n"))
     .digest("hex");
+}
+
+function toApifyActorPath(actorId: string) {
+  return actorId.trim().replace(/\//g, "~");
+}
+
+async function runApifyActor<T>(actorId: string, input: unknown, limit: number): Promise<T[]> {
+  const token = process.env.APIFY_TOKEN?.trim();
+  if (!token) return [];
+
+  const response = await fetch(
+    `https://api.apify.com/v2/acts/${toApifyActorPath(actorId)}/run-sync-get-dataset-items?token=${encodeURIComponent(
+      token
+    )}&limit=${limit}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify(input),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Apify actor failed: ${response.status}`);
+  }
+
+  const items = await response.json();
+  return Array.isArray(items) ? (items as T[]) : [];
 }
 
 function fingerprintCandidateItems(items: CandidateItem[]) {
@@ -130,6 +170,55 @@ function isBrandDue(brand: MonitoringBrandRow, now = new Date()) {
 function isSourceOnCooldown(source: MonitoringSourceRow, now: Date, force: boolean) {
   if (force || !source.lastCheckedAt) return false;
   return now.getTime() - new Date(source.lastCheckedAt).getTime() < SOURCE_COOLDOWN_HOURS * 60 * 60 * 1000;
+}
+
+function extractInstagramUsername(source: MonitoringSourceRow) {
+  const candidates = [source.sourceUrl, source.query, source.name]
+    .map((value) => cleanText(value, 120))
+    .filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    const trimmed = candidate.trim();
+
+    const urlMatch = trimmed.match(/instagram\.com\/([a-zA-Z0-9._]+)/i);
+    if (urlMatch?.[1]) {
+      return urlMatch[1].replace(/^@/, "");
+    }
+
+    if (/^@?[a-zA-Z0-9._]{1,30}$/.test(trimmed)) {
+      return trimmed.replace(/^@/, "");
+    }
+  }
+
+  return undefined;
+}
+
+function normalizeLinkedInTargetUrl(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) {
+    return normalizeUrl(trimmed);
+  }
+  if (/^(company|in|school)\//i.test(trimmed)) {
+    return normalizeUrl(`https://www.linkedin.com/${trimmed.replace(/^\/+/, "")}`);
+  }
+  return "";
+}
+
+function getLinkedInPrimaryImage(item: any) {
+  const postImage = item.postImages?.[0]?.url;
+  if (typeof postImage === "string" && postImage.trim()) return postImage.trim();
+
+  const articleImage = item.article?.image?.url;
+  if (typeof articleImage === "string" && articleImage.trim()) return articleImage.trim();
+
+  const videoThumbnail = item.postVideo?.thumbnailUrl;
+  if (typeof videoThumbnail === "string" && videoThumbnail.trim()) return videoThumbnail.trim();
+
+  const authorImage = item.author?.avatar?.url || item.author?.picture?.url;
+  if (typeof authorImage === "string" && authorImage.trim()) return authorImage.trim();
+
+  return undefined;
 }
 
 async function fetchText(url: string) {
@@ -273,36 +362,15 @@ async function scrapeWithApifyWebsiteCrawler(
   sourceUrl: string,
   publisher: string
 ): Promise<SourceDiscoveryResult> {
-  const token = process.env.APIFY_TOKEN?.trim();
-  if (!token) {
-    return {
-      items: [],
-      discoveryHash: "",
-      fetchMethod: "apify",
-    };
-  }
-
-  const response = await fetch(
-    `https://api.apify.com/v2/acts/${DEFAULT_APIFY_WEBSITE_ACTOR_ID}/run-sync-get-dataset-items?token=${encodeURIComponent(
-      token
-    )}&limit=12`,
+  const items = await runApifyActor<any>(
+    DEFAULT_APIFY_WEBSITE_ACTOR_ID,
     {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-      body: JSON.stringify({
-        startUrls: [{ url: sourceUrl }],
-        maxCrawlPages: 12,
-        maxCrawlDepth: 1,
-      }),
-    }
+      startUrls: [{ url: sourceUrl }],
+      maxCrawlPages: 12,
+      maxCrawlDepth: 1,
+    },
+    12
   );
-
-  if (!response.ok) {
-    throw new Error(`Apify actor failed: ${response.status}`);
-  }
-
-  const items = (await response.json()) as any[];
   const normalizedItems = (Array.isArray(items) ? items : [])
     .flatMap((item) => {
       const title =
@@ -330,6 +398,122 @@ async function scrapeWithApifyWebsiteCrawler(
       } satisfies CandidateItem];
     })
     .slice(0, 12);
+
+  return {
+    items: normalizedItems,
+    discoveryHash: fingerprintCandidateItems(normalizedItems),
+    fetchMethod: "apify",
+  };
+}
+
+async function scrapeInstagramProfile(
+  source: MonitoringSourceRow
+): Promise<SourceDiscoveryResult> {
+  const username = extractInstagramUsername(source);
+  if (!username) {
+    throw new Error("Instagram source requires a public profile URL or username");
+  }
+
+  const items = await runApifyActor<any>(
+    DEFAULT_APIFY_INSTAGRAM_ACTOR_ID,
+    {
+      instagramUsernames: [username],
+      postsPerProfile: SOCIAL_POST_LIMIT,
+    },
+    SOCIAL_POST_LIMIT
+  );
+
+  const normalizedItems = items
+    .flatMap((item) => {
+      const normalizedItemUrl = normalizeUrl(item.url || item.from_url || "");
+      if (!normalizedItemUrl) return [];
+
+      const caption = cleanText(item.caption, 320);
+      const title =
+        cleanText(item.caption, 220) ||
+        cleanText(`${source.name} Instagram post`, 220);
+
+      if (!title) return [];
+
+      return [{
+        title,
+        summary: caption,
+        url: normalizedItemUrl,
+        imageUrl: normalizeUrl(item.image || "") || undefined,
+        publisher:
+          cleanText(
+            item.owner?.username ? `@${item.owner.username}` : `@${username}`,
+            120
+          ) || source.name,
+        publishedAt: parsePublishedDate(item.taken_at || item.crawled_at),
+      } satisfies CandidateItem];
+    })
+    .slice(0, SOCIAL_POST_LIMIT);
+
+  return {
+    items: normalizedItems,
+    discoveryHash: fingerprintCandidateItems(normalizedItems),
+    fetchMethod: "apify",
+  };
+}
+
+async function scrapeLinkedInPosts(
+  source: MonitoringSourceRow
+): Promise<SourceDiscoveryResult> {
+  const sourceUrl = normalizeLinkedInTargetUrl(source.sourceUrl);
+  if (!sourceUrl) {
+    throw new Error("LinkedIn source requires a public company or profile URL");
+  }
+
+  const items = await runApifyActor<any>(
+    DEFAULT_APIFY_LINKEDIN_ACTOR_ID,
+    {
+      targetUrls: [sourceUrl],
+      maxPosts: SOCIAL_POST_LIMIT,
+      postedLimit: "month",
+      includeQuotePosts: true,
+      includeReposts: true,
+      scrapeReactions: false,
+      scrapeComments: false,
+    },
+    SOCIAL_POST_LIMIT
+  );
+
+  const normalizedItems = items
+    .flatMap((item) => {
+      if (item?.type !== "post") return [];
+
+      const normalizedItemUrl = normalizeUrl(
+        item.article?.link || item.linkedinUrl || item.url || item.postUrl || sourceUrl
+      );
+      if (!normalizedItemUrl) return [];
+
+      const content = cleanText(item.content, 320) || cleanText(item.commentary, 320);
+      const title =
+        cleanText(item.content, 220) ||
+        cleanText(item.commentary, 220) ||
+        cleanText(`${source.name} LinkedIn post`, 220);
+
+      if (!title) return [];
+
+      return [{
+        title,
+        summary: content,
+        url: normalizedItemUrl,
+        imageUrl: getLinkedInPrimaryImage(item),
+        publisher:
+          cleanText(item.author?.name, 120) ||
+          cleanText(item.author?.fullName, 120) ||
+          source.name,
+        publishedAt: parsePublishedDate(
+          item.postedAt?.date ||
+            item.postedAt?.dateTime ||
+            item.postedAt?.timestamp ||
+            item.createdAt
+        ),
+      } satisfies CandidateItem];
+    })
+    .slice(0, SOCIAL_POST_LIMIT);
 
   return {
     items: normalizedItems,
@@ -378,6 +562,12 @@ async function scrapeSource(source: MonitoringSourceRow): Promise<SourceDiscover
   if (source.sourceType === "news") {
     const query = cleanText(`${source.name} ${source.query ?? ""}`, 200) || source.name;
     return scrapeGoogleNews(query);
+  }
+  if (source.sourceType === "instagram") {
+    return scrapeInstagramProfile(source);
+  }
+  if (source.sourceType === "linkedin") {
+    return scrapeLinkedInPosts(source);
   }
   return scrapeWebsiteOrLeadership(source);
 }

@@ -1,5 +1,10 @@
 export type UserRole = "admin" | "brand";
-export type BrandMonitoringSourceType = "website" | "news" | "leadership";
+export type BrandMonitoringSourceType =
+  | "website"
+  | "news"
+  | "leadership"
+  | "instagram"
+  | "linkedin";
 
 export interface BrandMonitoringSource {
   id?: string;

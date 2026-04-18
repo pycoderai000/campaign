@@ -47,6 +47,8 @@ export const brandMonitoringSourceTypeEnum = pgEnum("brand_monitoring_source_typ
   "website",
   "news",
   "leadership",
+  "instagram",
+  "linkedin",
 ]);
 
 // Users (for auth; brandId set for brand users)
@@ -96,7 +98,7 @@ export const brandContentBuckets = pgTable(
   (t) => [index("brand_content_buckets_brand_id_idx").on(t.brandId)]
 );
 
-// Brand monitoring sources (news / websites / leadership sources a brand wants monitored daily)
+// Brand monitoring sources (news / websites / leadership / social sources a brand wants monitored daily)
 export const brandMonitoringSources = pgTable(
   "brand_monitoring_sources",
   {
