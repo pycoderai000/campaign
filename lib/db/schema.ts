@@ -43,6 +43,11 @@ export const socialPlatformEnum = pgEnum("social_platform", [
   "youtube",
   "tiktok",
 ]);
+export const brandMonitoringSourceTypeEnum = pgEnum("brand_monitoring_source_type", [
+  "website",
+  "news",
+  "leadership",
+]);
 
 // Users (for auth; brandId set for brand users)
 export const users = pgTable("users", {
@@ -64,6 +69,9 @@ export const brands = pgTable("brands", {
   email: varchar("email", { length: 255 }).notNull(),
   contactNumber: varchar("contact_number", { length: 50 }).notNull(),
   contentBucket: varchar("content_bucket", { length: 255 }),
+  monitoringEnabled: boolean("monitoring_enabled").notNull().default(false),
+  monitoringTime: varchar("monitoring_time", { length: 5 }).notNull().default("09:00"),
+  monitoringLastRunAt: timestamp("monitoring_last_run_at", { withTimezone: true }),
   instagramLink: varchar("instagram_link", { length: 512 }),
   instagramHandle: varchar("instagram_handle", { length: 255 }),
   youtubeLink: varchar("youtube_link", { length: 512 }),
@@ -86,6 +94,29 @@ export const brandContentBuckets = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index("brand_content_buckets_brand_id_idx").on(t.brandId)]
+);
+
+// Brand monitoring sources (news / websites / leadership sources a brand wants monitored daily)
+export const brandMonitoringSources = pgTable(
+  "brand_monitoring_sources",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    brandId: uuid("brand_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    sourceType: brandMonitoringSourceTypeEnum("source_type").notNull(),
+    sourceUrl: varchar("source_url", { length: 1024 }),
+    query: varchar("query", { length: 512 }),
+    isActive: boolean("is_active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("brand_monitoring_sources_brand_id_idx").on(t.brandId),
+    index("brand_monitoring_sources_brand_active_idx").on(t.brandId, t.isActive),
+  ]
 );
 
 // Campaigns
@@ -264,6 +295,33 @@ export const socialMetrics = pgTable(
   (t) => [index("social_metrics_brand_id_idx").on(t.brandId)]
 );
 
+// Scraped feed items shown on the brand dashboard
+export const brandScrapedItems = pgTable(
+  "brand_scraped_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    brandId: uuid("brand_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id").references(() => brandMonitoringSources.id, {
+      onDelete: "set null",
+    }),
+    sourceType: brandMonitoringSourceTypeEnum("source_type").notNull(),
+    title: varchar("title", { length: 512 }).notNull(),
+    summary: text("summary"),
+    url: varchar("url", { length: 2048 }).notNull(),
+    imageUrl: varchar("image_url", { length: 2048 }),
+    publisher: varchar("publisher", { length: 255 }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    rawData: jsonb("raw_data").$type<Record<string, unknown> | null>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("brand_scraped_items_brand_id_idx").on(t.brandId),
+    index("brand_scraped_items_source_id_idx").on(t.sourceId),
+  ]
+);
+
 // Relations (for Drizzle queries with relational API)
 export const usersRelations = relations(users, ({ one, many }) => ({
   brand: one(brands, {
@@ -279,6 +337,8 @@ export const brandsRelations = relations(brands, ({ many }) => ({
   campaigns: many(campaigns),
   socialMetrics: many(socialMetrics),
   contentBuckets: many(brandContentBuckets),
+  monitoringSources: many(brandMonitoringSources),
+  scrapedItems: many(brandScrapedItems),
 }));
 
 export const brandContentBucketsRelations = relations(brandContentBuckets, ({ one }) => ({
@@ -286,6 +346,14 @@ export const brandContentBucketsRelations = relations(brandContentBuckets, ({ on
     fields: [brandContentBuckets.brandId],
     references: [brands.id],
   }),
+}));
+
+export const brandMonitoringSourcesRelations = relations(brandMonitoringSources, ({ one, many }) => ({
+  brand: one(brands, {
+    fields: [brandMonitoringSources.brandId],
+    references: [brands.id],
+  }),
+  scrapedItems: many(brandScrapedItems),
 }));
 
 export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
@@ -346,5 +414,16 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(users, {
     fields: [notifications.userId],
     references: [users.id],
+  }),
+}));
+
+export const brandScrapedItemsRelations = relations(brandScrapedItems, ({ one }) => ({
+  brand: one(brands, {
+    fields: [brandScrapedItems.brandId],
+    references: [brands.id],
+  }),
+  source: one(brandMonitoringSources, {
+    fields: [brandScrapedItems.sourceId],
+    references: [brandMonitoringSources.id],
   }),
 }));

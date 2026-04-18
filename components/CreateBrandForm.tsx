@@ -1,12 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import type { Brand } from "@/types";
+import type { Brand, BrandMonitoringSource } from "@/types";
 import Modal from "@/components/Modal";
+import BrandMonitoringSettingsFields from "@/components/BrandMonitoringSettingsFields";
 
 export type CreateBrandPayload = Omit<Brand, "id" | "createdAt"> & {
   portalLoginEmail?: string;
   portalLoginPassword?: string;
+};
+
+type CreateBrandFormState = {
+  name: string;
+  poc: string;
+  email: string;
+  contactNumber: string;
+  contentBuckets: string[];
+  monitoringEnabled: boolean;
+  monitoringTime: string;
+  monitoringSources: BrandMonitoringSource[];
+  instagramLink: string;
+  instagramHandle: string;
+  youtubeLink: string;
+  youtubeHandle: string;
+  tiktokLink: string;
+  tiktokHandle: string;
+  portalLoginEmail: string;
+  portalLoginPassword: string;
 };
 
 interface CreateBrandFormProps {
@@ -17,12 +37,15 @@ interface CreateBrandFormProps {
 export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormProps) {
   const [showCreateVariableModal, setShowCreateVariableModal] = useState(false);
   const [newVariableValue, setNewVariableValue] = useState("");
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CreateBrandFormState>({
     name: "",
     poc: "",
     email: "",
     contactNumber: "",
     contentBuckets: [""],
+    monitoringEnabled: false,
+    monitoringTime: "09:00",
+    monitoringSources: [{ name: "", sourceType: "news", sourceUrl: "", query: "", isActive: true }],
     instagramLink: "",
     instagramHandle: "",
     youtubeLink: "",
@@ -106,6 +129,9 @@ export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormP
       email: "",
       contactNumber: "",
       contentBuckets: [""],
+      monitoringEnabled: false,
+      monitoringTime: "09:00",
+      monitoringSources: [{ name: "", sourceType: "news", sourceUrl: "", query: "", isActive: true }],
       instagramLink: "",
       instagramHandle: "",
       youtubeLink: "",
@@ -329,6 +355,22 @@ export default function CreateBrandForm({ onSubmit, onCancel }: CreateBrandFormP
           </div>
         </div>
       </div>
+
+      <BrandMonitoringSettingsFields
+        value={{
+          monitoringEnabled: formData.monitoringEnabled,
+          monitoringTime: formData.monitoringTime,
+          monitoringSources: formData.monitoringSources,
+        }}
+        onChange={(next) =>
+          setFormData((prev) => ({
+            ...prev,
+            monitoringEnabled: next.monitoringEnabled,
+            monitoringTime: next.monitoringTime,
+            monitoringSources: next.monitoringSources,
+          }))
+        }
+      />
 
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
         <button

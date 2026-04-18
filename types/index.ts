@@ -1,4 +1,29 @@
 export type UserRole = "admin" | "brand";
+export type BrandMonitoringSourceType = "website" | "news" | "leadership";
+
+export interface BrandMonitoringSource {
+  id?: string;
+  name: string;
+  sourceType: BrandMonitoringSourceType;
+  sourceUrl?: string;
+  query?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export interface BrandScrapedItem {
+  id: string;
+  brandId: string;
+  sourceId?: string;
+  sourceType: BrandMonitoringSourceType;
+  title: string;
+  summary?: string;
+  url: string;
+  imageUrl?: string;
+  publisher?: string;
+  publishedAt?: string;
+  createdAt: string;
+}
 
 export interface Brand {
   id: string;
@@ -8,6 +33,10 @@ export interface Brand {
   contactNumber: string;
   contentBucket?: string; // legacy single-bucket field
   contentBuckets?: string[];
+  monitoringEnabled?: boolean;
+  monitoringTime?: string;
+  monitoringLastRunAt?: string;
+  monitoringSources?: BrandMonitoringSource[];
   instagramLink?: string;
   instagramHandle?: string;
   youtubeLink?: string;

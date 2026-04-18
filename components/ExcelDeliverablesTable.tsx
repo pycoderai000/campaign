@@ -111,16 +111,25 @@ export default function ExcelDeliverablesTable({
 
   const handleSave = () => {
     const validDeliverables = rows
-      .filter((row) => row.name && row.caption && row.postingDate && row.postingTime && row.campaignId)
-      .map((row, index) => ({
+      .filter((row) => {
+        const name = (row.name ?? "").trim();
+        const date = (row.postingDate ?? "").trim();
+        const time = (row.postingTime ?? "").trim();
+        const campaignId = (row.campaignId ?? "").trim();
+        return !!(name && date && time && campaignId);
+      })
+      .map((row, index) => {
+        const name = (row.name ?? "").trim();
+        const caption = (row.caption ?? "").trim() || name;
+        return ({
         id: `temp-${index}`,
-        name: row.name!,
+        name,
         postType: row.postType!,
         files: row.files || [],
-        caption: row.caption!,
-        postingDate: row.postingDate!,
-        postingTime: row.postingTime!,
-        campaignId: row.campaignId!,
+        caption,
+        postingDate: (row.postingDate ?? "").trim(),
+        postingTime: (row.postingTime ?? "").trim(),
+        campaignId: (row.campaignId ?? "").trim(),
         campaignName: row.campaignName!,
         brandId: row.brandId!,
         brandName: row.brandName!,
@@ -130,7 +139,8 @@ export default function ExcelDeliverablesTable({
         createdAt: new Date().toISOString(),
         contentHistory: [],
         revisions: [],
-      }));
+      });
+      });
     
     onSave(validDeliverables);
   };
@@ -162,7 +172,7 @@ export default function ExcelDeliverablesTable({
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Name</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase hidden md:table-cell">Campaign</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase hidden lg:table-cell">Type</th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase hidden xl:table-cell">Caption</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase min-w-[18rem]">Caption</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Date</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Time</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-bold text-gray-700 uppercase">Status</th>
@@ -210,12 +220,12 @@ export default function ExcelDeliverablesTable({
                         ))}
                       </select>
                     </td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 hidden xl:table-cell">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3">
                       <textarea
                         value={row.caption || ""}
                         onChange={(e) => updateRow(index, "caption", e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm resize-none"
-                        rows={2}
+                        className="w-full min-w-[18rem] px-2 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none text-xs sm:text-sm resize-y"
+                        rows={5}
                         placeholder="Caption..."
                       />
                     </td>

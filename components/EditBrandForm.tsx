@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Brand } from "@/types";
+import type { Brand, BrandMonitoringSource } from "@/types";
 import { api } from "@/lib/api";
+import BrandMonitoringSettingsFields from "@/components/BrandMonitoringSettingsFields";
 
 interface EditBrandFormProps {
   brand: Brand;
@@ -10,8 +11,25 @@ interface EditBrandFormProps {
   onCancel: () => void;
 }
 
+type EditBrandFormState = {
+  name: string;
+  poc: string;
+  email: string;
+  contactNumber: string;
+  contentBuckets: string[];
+  monitoringEnabled: boolean;
+  monitoringTime: string;
+  monitoringSources: BrandMonitoringSource[];
+  instagramLink: string;
+  instagramHandle: string;
+  youtubeLink: string;
+  youtubeHandle: string;
+  tiktokLink: string;
+  tiktokHandle: string;
+};
+
 export default function EditBrandForm({ brand, onSaved, onCancel }: EditBrandFormProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<EditBrandFormState>({
     name: brand.name,
     poc: brand.poc,
     email: brand.email,
@@ -22,6 +40,12 @@ export default function EditBrandForm({ brand, onSaved, onCancel }: EditBrandFor
         : brand.contentBucket
         ? [brand.contentBucket]
         : [""],
+    monitoringEnabled: brand.monitoringEnabled ?? false,
+    monitoringTime: brand.monitoringTime ?? "09:00",
+    monitoringSources:
+      brand.monitoringSources && brand.monitoringSources.length > 0
+        ? brand.monitoringSources
+        : [{ name: "", sourceType: "news", sourceUrl: "", query: "", isActive: true }],
     instagramLink: brand.instagramLink ?? "",
     instagramHandle: brand.instagramHandle ?? "",
     youtubeLink: brand.youtubeLink ?? "",
@@ -47,6 +71,12 @@ export default function EditBrandForm({ brand, onSaved, onCancel }: EditBrandFor
           : brand.contentBucket
           ? [brand.contentBucket]
           : [""],
+      monitoringEnabled: brand.monitoringEnabled ?? false,
+      monitoringTime: brand.monitoringTime ?? "09:00",
+      monitoringSources:
+        brand.monitoringSources && brand.monitoringSources.length > 0
+          ? brand.monitoringSources
+          : [{ name: "", sourceType: "news", sourceUrl: "", query: "", isActive: true }],
       instagramLink: brand.instagramLink ?? "",
       instagramHandle: brand.instagramHandle ?? "",
       youtubeLink: brand.youtubeLink ?? "",
@@ -95,6 +125,17 @@ export default function EditBrandForm({ brand, onSaved, onCancel }: EditBrandFor
       contactNumber: formData.contactNumber,
       contentBuckets: formData.contentBuckets.map((b) => b.trim()).filter(Boolean),
       contentBucket: formData.contentBuckets.map((b) => b.trim()).filter(Boolean)[0] || undefined,
+      monitoringEnabled: formData.monitoringEnabled,
+      monitoringTime: formData.monitoringTime,
+      monitoringSources: formData.monitoringSources
+        .map((source, index) => ({
+          ...source,
+          name: source.name.trim(),
+          sourceUrl: source.sourceUrl?.trim() || "",
+          query: source.query?.trim() || "",
+          sortOrder: index,
+        }))
+        .filter((source) => source.name.length > 0),
       instagramLink: formData.instagramLink || undefined,
       instagramHandle: formData.instagramHandle || undefined,
       youtubeLink: formData.youtubeLink || undefined,
@@ -226,6 +267,22 @@ export default function EditBrandForm({ brand, onSaved, onCancel }: EditBrandFor
             </button>
           </div>
         </div>
+
+        <BrandMonitoringSettingsFields
+          value={{
+            monitoringEnabled: formData.monitoringEnabled,
+            monitoringTime: formData.monitoringTime,
+            monitoringSources: formData.monitoringSources,
+          }}
+          onChange={(next) =>
+            setFormData((prev) => ({
+              ...prev,
+              monitoringEnabled: next.monitoringEnabled,
+              monitoringTime: next.monitoringTime,
+              monitoringSources: next.monitoringSources,
+            }))
+          }
+        />
 
         <div className="border-t border-gray-200 pt-4">
           <h3 className="text-base font-bold text-gray-800 mb-3">Social links</h3>

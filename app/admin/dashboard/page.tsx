@@ -7,6 +7,7 @@ import Modal from "@/components/Modal";
 import CreateBrandForm, { type CreateBrandPayload } from "@/components/CreateBrandForm";
 import EditBrandForm from "@/components/EditBrandForm";
 import CreateCampaignForm from "@/components/CreateCampaignForm";
+import EditCampaignForm from "@/components/EditCampaignForm";
 import ExcelDeliverablesTable from "@/components/ExcelDeliverablesTable";
 import DeliverablesTable from "@/components/DeliverablesTable";
 import CampaignMetrics from "@/components/CampaignMetrics";
@@ -20,6 +21,14 @@ function isFile(f: FileOrUrl): f is File {
   return f instanceof File;
 }
 
+function sortDeliverablesByPostingDate<T extends { postingDate: string; postingTime: string }>(items: T[]) {
+  return [...items].sort((a, b) => {
+    const left = new Date(`${a.postingDate}T${a.postingTime || "00:00"}`);
+    const right = new Date(`${b.postingDate}T${b.postingTime || "00:00"}`);
+    return left.getTime() - right.getTime();
+  });
+}
+
 export default function AdminDashboard() {
   const [activeView, setActiveView] = useState<"brands" | "campaigns" | "deliverables" | "metrics" | "calendar">("brands");
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
@@ -28,6 +37,8 @@ export default function AdminDashboard() {
   const [showEditBrand, setShowEditBrand] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
+  const [showEditCampaign, setShowEditCampaign] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [showCreateDeliverable, setShowCreateDeliverable] = useState(false);
   const [showEditDeliverable, setShowEditDeliverable] = useState(false);
   const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null);
@@ -40,6 +51,7 @@ export default function AdminDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [metaInstagramStatus, setMetaInstagramStatus] = useState<{ configured: boolean; hasInstagram: boolean; message: string } | null>(null);
   const [syncingBrandId, setSyncingBrandId] = useState<string | null>(null);
+  const [syncingMonitoringBrandId, setSyncingMonitoringBrandId] = useState<string | null>(null);
   const [deliverableDetailId, setDeliverableDetailId] = useState<string | null>(null);
 
   const fetchBrands = useCallback(async () => {
@@ -144,6 +156,21 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleUpdateCampaign = async (campaignData: Omit<Campaign, "createdAt">) => {
+    try {
+      await api.patch<Campaign>(`/api/campaigns/${campaignData.id}`, {
+        name: campaignData.name,
+        type: campaignData.type,
+        brandId: campaignData.brandId,
+      });
+      setShowEditCampaign(false);
+      setEditingCampaign(null);
+      await fetchCampaigns();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to update campaign");
+    }
+  };
+
   const handleCreateDeliverables = async (newDeliverables: Deliverable[]) => {
     if (newDeliverables.length === 0) {
       alert("Please fill in at least one row (name, caption, date, time, campaign).");
@@ -245,6 +272,27 @@ export default function AdminDashboard() {
       alert(e instanceof Error ? e.message : "Sync failed");
     } finally {
       setSyncingBrandId(null);
+    }
+  };
+
+  const handleSyncMonitoring = async (brandId: string) => {
+    setSyncingMonitoringBrandId(brandId);
+    try {
+      const res = await api.post<{ results?: { insertedCount: number }[] }>("/api/monitoring", {
+        brandId,
+        dueOnly: false,
+      });
+      const inserted = res.results?.[0]?.insertedCount ?? 0;
+      alert(
+        inserted > 0
+          ? `Web feed synced. ${inserted} new item(s) added.`
+          : "Web feed synced. No new items found."
+      );
+      await fetchBrands();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to sync web feed");
+    } finally {
+      setSyncingMonitoringBrandId(null);
     }
   };
 
@@ -412,6 +460,25 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="mb-3">
+                          <p className="text-gray-500 text-xs">Daily web monitoring</p>
+                          <p className="text-gray-800 font-semibold text-sm">
+                            {brand.monitoringEnabled
+                              ? `${brand.monitoringSources?.filter((source) => source.isActive !== false).length ?? 0} source(s) • ${brand.monitoringTime || "09:00"}`
+                              : "Disabled"}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleSyncMonitoring(brand.id)}
+                          disabled={
+                            !!syncingMonitoringBrandId ||
+                            !(brand.monitoringSources && brand.monitoringSources.some((source) => source.isActive !== false))
+                          }
+                          className="mb-3 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium bg-gradient-to-r from-slate-700 to-slate-900 text-white hover:from-slate-800 hover:to-black disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                          {syncingMonitoringBrandId === brand.id ? "Syncing web feed…" : "Sync Web Feed"}
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleSyncInstagram(brand.id)}
@@ -451,7 +518,9 @@ export default function AdminDashboard() {
                   <h2 className="text-2xl sm:text-3xl font-bold text-slate-800">{selectedCampaign.name} – Deliverables</h2>
                 </div>
                 <DeliverablesTable
-                  deliverables={deliverables.filter((d) => d.campaignId === selectedCampaign.id)}
+                  deliverables={sortDeliverablesByPostingDate(
+                    deliverables.filter((d) => d.campaignId === selectedCampaign.id)
+                  )}
                   onEdit={handleEditDeliverable}
                   showEdit={true}
                   showComments={true}
@@ -504,19 +573,29 @@ export default function AdminDashboard() {
                     TikTok: "from-gray-800 to-gray-900",
                   };
                   return (
-                    <button
-                      type="button"
+                    <div
                       key={campaign.id}
-                      onClick={() => setSelectedCampaign(campaign)}
                       className="group w-full text-left bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-soft hover:shadow-hover transition-all duration-300 border border-gray-200 hover:border-indigo-300 transform hover:-translate-y-1"
                     >
-                      <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-start justify-between mb-4 gap-3">
                         <div className={`w-12 h-12 bg-gradient-to-br ${typeColors[campaign.type] || "from-indigo-500 to-purple-600"} rounded-xl flex items-center justify-center shadow-lg`}>
                           <span className="text-2xl">
                             {campaign.type === "LinkedIn" ? "💼" : campaign.type === "Instagram" ? "📷" : campaign.type === "YouTube" ? "📺" : "🎵"}
                           </span>
                         </div>
-                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Active</span>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Active</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingCampaign(campaign);
+                              setShowEditCampaign(true);
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 transition-colors"
+                          >
+                            Edit
+                          </button>
+                        </div>
                       </div>
                       <h3 className="text-xl font-bold text-slate-800 mb-3 group-hover:text-indigo-600 transition-colors">
                         {campaign.name}
@@ -531,8 +610,14 @@ export default function AdminDashboard() {
                           <span className="text-gray-800 font-semibold">{campaign.brandName}</span>
                         </div>
                       </div>
-                      <p className="mt-3 text-sm text-indigo-600 font-medium">View deliverables →</p>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCampaign(campaign)}
+                        className="mt-3 text-sm text-indigo-600 font-medium hover:text-indigo-700"
+                      >
+                        View deliverables →
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -686,6 +771,27 @@ export default function AdminDashboard() {
             onSubmit={handleCreateCampaign}
             onCancel={() => setShowCreateCampaign(false)}
           />
+        </Modal>
+
+        <Modal
+          isOpen={showEditCampaign}
+          onClose={() => {
+            setShowEditCampaign(false);
+            setEditingCampaign(null);
+          }}
+          title="Edit Campaign"
+        >
+          {editingCampaign && (
+            <EditCampaignForm
+              campaign={editingCampaign}
+              brands={brands}
+              onSubmit={handleUpdateCampaign}
+              onCancel={() => {
+                setShowEditCampaign(false);
+                setEditingCampaign(null);
+              }}
+            />
+          )}
         </Modal>
 
         <Modal

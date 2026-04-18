@@ -3,13 +3,39 @@ import { desc, eq, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { requireAuth } from "@/lib/auth";
 import { createBrandSchema } from "@/lib/validations/brands";
-import { db, brands, brandContentBuckets, users } from "@/lib/db";
+import { db, brands, brandContentBuckets, brandMonitoringSources, users } from "@/lib/db";
 
 function normalizeBuckets(input: { contentBucket?: string; contentBuckets?: string[] }): string[] {
   const fromArray = (input.contentBuckets || []).map((s) => s.trim()).filter(Boolean);
   const legacy = (input.contentBucket || "").trim();
   const merged = legacy ? [legacy, ...fromArray] : fromArray;
   return [...new Set(merged)];
+}
+
+function normalizeMonitoringSources(input: {
+  monitoringSources?: {
+    name: string;
+    sourceType: "website" | "news" | "leadership";
+    sourceUrl?: string;
+    query?: string;
+    isActive?: boolean;
+    sortOrder?: number;
+  }[];
+}) {
+  return (input.monitoringSources ?? [])
+    .map((source, index) => ({
+      name: source.name.trim(),
+      sourceType: source.sourceType,
+      sourceUrl: (source.sourceUrl ?? "").trim(),
+      query: (source.query ?? "").trim(),
+      isActive: source.isActive ?? true,
+      sortOrder: source.sortOrder ?? index,
+    }))
+    .filter((source) => source.name.length > 0)
+    .map((source, index) => ({
+      ...source,
+      sortOrder: index,
+    }));
 }
 
 export async function GET() {
@@ -24,11 +50,33 @@ export async function GET() {
           .from(brandContentBuckets)
           .where(inArray(brandContentBuckets.brandId, ids))
       : [];
+  const sourceRows =
+    ids.length > 0
+      ? await db
+          .select({
+            id: brandMonitoringSources.id,
+            brandId: brandMonitoringSources.brandId,
+            name: brandMonitoringSources.name,
+            sourceType: brandMonitoringSources.sourceType,
+            sourceUrl: brandMonitoringSources.sourceUrl,
+            query: brandMonitoringSources.query,
+            isActive: brandMonitoringSources.isActive,
+            sortOrder: brandMonitoringSources.sortOrder,
+          })
+          .from(brandMonitoringSources)
+          .where(inArray(brandMonitoringSources.brandId, ids))
+      : [];
   const bucketMap = new Map<string, string[]>();
   for (const row of bucketRows) {
     const arr = bucketMap.get(row.brandId) ?? [];
     arr.push(row.name);
     bucketMap.set(row.brandId, arr);
+  }
+  const sourceMap = new Map<string, typeof sourceRows>();
+  for (const row of sourceRows) {
+    const arr = sourceMap.get(row.brandId) ?? [];
+    arr.push(row);
+    sourceMap.set(row.brandId, arr);
   }
   return NextResponse.json(
     list.map((b) => ({
@@ -39,6 +87,21 @@ export async function GET() {
       contactNumber: b.contactNumber,
       contentBucket: b.contentBucket ?? undefined,
       contentBuckets: bucketMap.get(b.id) ?? (b.contentBucket ? [b.contentBucket] : []),
+      monitoringEnabled: b.monitoringEnabled,
+      monitoringTime: b.monitoringTime,
+      monitoringLastRunAt: b.monitoringLastRunAt ?? undefined,
+      monitoringSources:
+        (sourceMap.get(b.id) ?? [])
+          .sort((a, z) => a.sortOrder - z.sortOrder)
+          .map((source) => ({
+            id: source.id,
+            name: source.name,
+            sourceType: source.sourceType,
+            sourceUrl: source.sourceUrl ?? undefined,
+            query: source.query ?? undefined,
+            isActive: source.isActive,
+            sortOrder: source.sortOrder,
+          })),
       instagramLink: b.instagramLink ?? undefined,
       instagramHandle: b.instagramHandle ?? undefined,
       youtubeLink: b.youtubeLink ?? undefined,
@@ -63,6 +126,8 @@ export async function POST(request: Request) {
   }
   const data = parsed.data;
   const contentBuckets = normalizeBuckets(data);
+  const monitoringSourcesInput = normalizeMonitoringSources(data);
+  const monitoringEnabled = Boolean(data.monitoringEnabled && monitoringSourcesInput.length > 0);
   const portalEmail = (data.portalLoginEmail ?? "").trim();
   const portalPassword = (data.portalLoginPassword ?? "").trim();
   const wantsPortal = Boolean(portalEmail && portalPassword);
@@ -86,6 +151,8 @@ export async function POST(request: Request) {
         email: data.email,
         contactNumber: data.contactNumber,
         contentBucket: contentBuckets[0] || null,
+        monitoringEnabled,
+        monitoringTime: data.monitoringTime,
         instagramLink: data.instagramLink || null,
         instagramHandle: data.instagramHandle || null,
         youtubeLink: data.youtubeLink || null,
@@ -102,6 +169,20 @@ export async function POST(request: Request) {
         contentBuckets.map((name) => ({
           brandId: b.id,
           name,
+        }))
+      );
+    }
+
+    if (monitoringSourcesInput.length > 0) {
+      await tx.insert(brandMonitoringSources).values(
+        monitoringSourcesInput.map((source) => ({
+          brandId: b.id,
+          name: source.name,
+          sourceType: source.sourceType,
+          sourceUrl: source.sourceUrl || null,
+          query: source.query || null,
+          isActive: source.isActive,
+          sortOrder: source.sortOrder,
         }))
       );
     }
@@ -128,6 +209,18 @@ export async function POST(request: Request) {
     contactNumber: inserted.contactNumber,
     contentBucket: inserted.contentBucket ?? undefined,
     contentBuckets,
+    monitoringEnabled: inserted.monitoringEnabled,
+    monitoringTime: inserted.monitoringTime,
+    monitoringLastRunAt: inserted.monitoringLastRunAt ?? undefined,
+    monitoringSources: monitoringSourcesInput.map((source, index) => ({
+      id: `temp-${index}`,
+      name: source.name,
+      sourceType: source.sourceType,
+      sourceUrl: source.sourceUrl || undefined,
+      query: source.query || undefined,
+      isActive: source.isActive,
+      sortOrder: source.sortOrder,
+    })),
     instagramLink: inserted.instagramLink ?? undefined,
     instagramHandle: inserted.instagramHandle ?? undefined,
     youtubeLink: inserted.youtubeLink ?? undefined,

@@ -156,8 +156,8 @@ export default function CreateDeliverableForm({
           value={formData.caption}
           onChange={(e) => setFormData({ ...formData, caption: e.target.value })}
           required
-          rows={4}
-          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm resize-none text-sm sm:text-base"
+          rows={8}
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm resize-y min-h-[12rem] text-sm sm:text-base"
           placeholder="Enter caption"
         />
       </div>

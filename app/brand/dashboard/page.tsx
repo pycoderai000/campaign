@@ -6,12 +6,14 @@ import BrandDeliverablesTable from "@/components/BrandDeliverablesTable";
 import CampaignMetrics from "@/components/CampaignMetrics";
 import SocialMediaMetrics from "@/components/SocialMediaMetrics";
 import ContentCalendar from "@/components/ContentCalendar";
+import BrandMonitoringFeed from "@/components/BrandMonitoringFeed";
 import NotificationBar from "@/components/NotificationBar";
 import Modal from "@/components/Modal";
 import BrandEditDeliverableForm from "@/components/BrandEditDeliverableForm";
 import BrandRequestRevisionForm from "@/components/BrandRequestRevisionForm";
 import DeliverableDetailModal from "@/components/DeliverableDetailModal";
 import type {
+  BrandScrapedItem,
   Campaign,
   Deliverable,
   DeliverableStatus,
@@ -22,7 +24,7 @@ import { api, uploadFiles } from "@/lib/api";
 import { defaultSocialMetrics } from "@/lib/social-metrics-defaults";
 
 export default function BrandDashboard() {
-  const [activeView, setActiveView] = useState<"campaigns" | "metrics" | "social" | "calendar">("campaigns");
+  const [activeView, setActiveView] = useState<"campaigns" | "feed" | "metrics" | "social" | "calendar">("campaigns");
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   const [selectedCampaignForCalendar, setSelectedCampaignForCalendar] = useState<string | null>(null);
   const [showEditDeliverable, setShowEditDeliverable] = useState(false);
@@ -37,6 +39,7 @@ export default function BrandDashboard() {
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [socialMetrics, setSocialMetrics] = useState<SocialMediaMetricsType | null>(null);
+  const [feedItems, setFeedItems] = useState<BrandScrapedItem[]>([]);
 
   const fetchCampaigns = useCallback(async () => {
     try {
@@ -92,16 +95,25 @@ export default function BrandDashboard() {
     }
   }, []);
 
+  const fetchFeedItems = useCallback(async () => {
+    try {
+      const data = await api.get<{ items: BrandScrapedItem[] }>("/api/monitoring");
+      setFeedItems(Array.isArray(data?.items) ? data.items : []);
+    } catch {
+      setFeedItems([]);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       setError(null);
-      await Promise.all([fetchCampaigns(), fetchDeliverables(), fetchNotifications(), fetchSocialMetrics()]);
+      await Promise.all([fetchCampaigns(), fetchDeliverables(), fetchNotifications(), fetchSocialMetrics(), fetchFeedItems()]);
       if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [fetchCampaigns, fetchDeliverables, fetchNotifications, fetchSocialMetrics]);
+  }, [fetchCampaigns, fetchDeliverables, fetchNotifications, fetchSocialMetrics, fetchFeedItems]);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -207,11 +219,16 @@ export default function BrandDashboard() {
   };
 
   const filteredDeliverables = selectedCampaign
-    ? deliverables.filter((d) => d.campaignId === selectedCampaign)
+    ? [...deliverables.filter((d) => d.campaignId === selectedCampaign)].sort((a, b) => {
+        const left = new Date(`${a.postingDate}T${a.postingTime || "00:00"}`);
+        const right = new Date(`${b.postingDate}T${b.postingTime || "00:00"}`);
+        return left.getTime() - right.getTime();
+      })
     : [];
 
   const sidebarItems = [
     { label: "Campaigns", href: "#", onClick: () => setActiveView("campaigns"), viewKey: "campaigns" },
+    { label: "Web Feed", href: "#", onClick: () => setActiveView("feed"), viewKey: "feed" },
     { label: "Metrics", href: "#", onClick: () => setActiveView("metrics"), viewKey: "metrics" },
     { label: "Social Media Metrics", href: "#", onClick: () => setActiveView("social"), viewKey: "social" },
     { label: "Content Calendar", href: "#", onClick: () => setActiveView("calendar"), viewKey: "calendar" },
@@ -254,6 +271,18 @@ export default function BrandDashboard() {
             </div>
           </div>
         </div>
+
+        {activeView === "feed" && (
+          <div>
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">Web Feed</h2>
+              <p className="text-sm sm:text-base text-gray-600">
+                Daily monitored content from the websites, news sources, and leadership pages configured for your brand.
+              </p>
+            </div>
+            <BrandMonitoringFeed items={feedItems} />
+          </div>
+        )}
 
         {activeView === "campaigns" && (
           <div>

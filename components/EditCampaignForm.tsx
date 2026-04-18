@@ -1,0 +1,113 @@
+"use client";
+
+import { useState } from "react";
+import type { Campaign, CampaignType } from "@/types";
+
+interface EditCampaignFormProps {
+  campaign: Campaign;
+  brands: { id: string; name: string }[];
+  onSubmit: (data: Omit<Campaign, "createdAt">) => void;
+  onCancel: () => void;
+}
+
+const campaignTypes: CampaignType[] = ["LinkedIn", "Instagram", "YouTube", "TikTok"];
+
+export default function EditCampaignForm({
+  campaign,
+  brands,
+  onSubmit,
+  onCancel,
+}: EditCampaignFormProps) {
+  const [formData, setFormData] = useState({
+    id: campaign.id,
+    name: campaign.name,
+    type: campaign.type,
+    brandId: campaign.brandId,
+    brandName: campaign.brandName,
+  });
+
+  const handleBrandChange = (brandId: string) => {
+    const selectedBrand = brands.find((brand) => brand.id === brandId);
+    setFormData((prev) => ({
+      ...prev,
+      brandId,
+      brandName: selectedBrand?.name || "",
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      <div>
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+          Campaign Name <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={formData.name}
+          onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+          required
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+          Campaign Type <span className="text-red-500">*</span>
+        </label>
+        <select
+          value={formData.type}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, type: e.target.value as CampaignType }))
+          }
+          required
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
+        >
+          {campaignTypes.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+          Brand Name <span className="text-red-500">*</span>
+        </label>
+        <select
+          value={formData.brandId}
+          onChange={(e) => handleBrandChange(e.target.value)}
+          required
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white/50 backdrop-blur-sm text-sm sm:text-base"
+        >
+          {brands.map((brand) => (
+            <option key={brand.id} value={brand.id}>
+              {brand.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
+        <button
+          type="submit"
+          className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 sm:py-3.5 px-4 sm:px-6 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg text-sm sm:text-base"
+        >
+          Save Campaign
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 bg-gray-100 text-gray-700 py-3 sm:py-3.5 px-4 sm:px-6 rounded-xl font-semibold hover:bg-gray-200 transition-all duration-200 text-sm sm:text-base"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
