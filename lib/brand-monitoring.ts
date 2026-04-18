@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { XMLParser } from "fast-xml-parser";
 import { db, brands, brandMonitoringSources, brandScrapedItems } from "@/lib/db";
@@ -19,6 +20,10 @@ type MonitoringSourceRow = {
   query: string | null;
   isActive: boolean;
   sortOrder: number;
+  lastCheckedAt: Date | null;
+  lastUsedApifyAt: Date | null;
+  lastDiscoveryHash: string | null;
+  lastError: string | null;
 };
 
 export type MonitoringFeedItem = {
@@ -44,6 +49,12 @@ type CandidateItem = {
   publishedAt?: Date;
 };
 
+type SourceDiscoveryResult = {
+  items: CandidateItem[];
+  discoveryHash: string;
+  fetchMethod: "direct" | "apify" | "news";
+};
+
 const RSS_PARSER = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "",
@@ -52,6 +63,10 @@ const RSS_PARSER = new XMLParser({
 
 const DEFAULT_APIFY_WEBSITE_ACTOR_ID =
   process.env.APIFY_WEBSITE_ACTOR_ID || "apify/website-content-crawler";
+const SOURCE_COOLDOWN_HOURS = Math.max(
+  1,
+  Number(process.env.MONITORING_SOURCE_COOLDOWN_HOURS ?? "18")
+);
 
 function cleanText(value: string | null | undefined, maxLength = 320) {
   const cleaned = (value ?? "").replace(/\s+/g, " ").trim();
@@ -71,6 +86,23 @@ function parsePublishedDate(value: unknown): Date | undefined {
   if (typeof value !== "string" || !value.trim()) return undefined;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+function createFingerprint(parts: Array<string | undefined>) {
+  return createHash("sha256")
+    .update(parts.filter(Boolean).join("\n"))
+    .digest("hex");
+}
+
+function fingerprintCandidateItems(items: CandidateItem[]) {
+  return createFingerprint(
+    items.slice(0, 20).flatMap((item) => [
+      item.url,
+      item.title,
+      item.summary,
+      item.publishedAt?.toISOString(),
+    ])
+  );
 }
 
 function isSameDay(a: Date, b: Date) {
@@ -95,6 +127,11 @@ function isBrandDue(brand: MonitoringBrandRow, now = new Date()) {
   return true;
 }
 
+function isSourceOnCooldown(source: MonitoringSourceRow, now: Date, force: boolean) {
+  if (force || !source.lastCheckedAt) return false;
+  return now.getTime() - new Date(source.lastCheckedAt).getTime() < SOURCE_COOLDOWN_HOURS * 60 * 60 * 1000;
+}
+
 async function fetchText(url: string) {
   const response = await fetch(url, {
     headers: {
@@ -113,7 +150,7 @@ async function fetchText(url: string) {
   return response.text();
 }
 
-async function scrapeGoogleNews(query: string) {
+async function scrapeGoogleNews(query: string): Promise<SourceDiscoveryResult> {
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(
     `${query} when:1d`
   )}&hl=en-US&gl=US&ceid=US:en`;
@@ -122,15 +159,15 @@ async function scrapeGoogleNews(query: string) {
   const items = data?.rss?.channel?.item;
   const list = Array.isArray(items) ? items : items ? [items] : [];
 
-  return list
+  const normalizedItems = list
     .flatMap((item: any) => {
       const title = cleanText(item.title, 220);
-      const url = normalizeUrl(item.link);
-      if (!title || !url) return [];
+      const normalizedItemUrl = normalizeUrl(item.link);
+      if (!title || !normalizedItemUrl) return [];
       return [{
         title,
         summary: cleanText(item.description),
-        url,
+        url: normalizedItemUrl,
         publisher: cleanText(
           item.source?.["#text"] || item.source || item.author || "Google News",
           120
@@ -139,6 +176,12 @@ async function scrapeGoogleNews(query: string) {
       } satisfies CandidateItem];
     })
     .slice(0, 12);
+
+  return {
+    items: normalizedItems,
+    discoveryHash: fingerprintCandidateItems(normalizedItems),
+    fetchMethod: "news",
+  };
 }
 
 async function loadCheerio() {
@@ -148,7 +191,11 @@ async function loadCheerio() {
   return import("cheerio");
 }
 
-async function extractWebsiteCandidates(html: string, sourceUrl: string, fallbackPublisher: string) {
+async function extractWebsiteCandidates(
+  html: string,
+  sourceUrl: string,
+  fallbackPublisher: string
+): Promise<SourceDiscoveryResult> {
   const cheerio = await loadCheerio();
   const $ = cheerio.load(html);
   const items: CandidateItem[] = [];
@@ -171,17 +218,17 @@ async function extractWebsiteCandidates(html: string, sourceUrl: string, fallbac
       const title =
         cleanText($(element).text(), 220) ||
         cleanText($(element).attr("title"), 220);
-      const url = href ? normalizeUrl(href, sourceUrl) : "";
-      if (!title || !url) return;
+      const normalizedItemUrl = href ? normalizeUrl(href, sourceUrl) : "";
+      if (!title || !normalizedItemUrl) return;
       try {
-        const candidateHost = new URL(url).hostname;
+        const candidateHost = new URL(normalizedItemUrl).hostname;
         if (candidateHost !== sourceHost) return;
       } catch {
         return;
       }
       items.push({
         title,
-        url,
+        url: normalizedItemUrl,
         publisher: fallbackPublisher,
       });
     });
@@ -194,26 +241,46 @@ async function extractWebsiteCandidates(html: string, sourceUrl: string, fallbac
   }
 
   const uniqueItems = [...uniqueByUrl.values()].slice(0, 12);
-  if (uniqueItems.length > 0) return uniqueItems;
+  const fallbackItems =
+    uniqueItems.length > 0
+      ? uniqueItems
+      : pageTitle
+      ? [
+          {
+            title: pageTitle,
+            summary: pageSummary,
+            url: sourceUrl,
+            imageUrl: metaImage ? normalizeUrl(metaImage, sourceUrl) : undefined,
+            publisher: fallbackPublisher,
+          },
+        ]
+      : [];
 
-  if (pageTitle) {
-    return [
-      {
-        title: pageTitle,
-        summary: pageSummary,
-        url: sourceUrl,
-        imageUrl: metaImage ? normalizeUrl(metaImage, sourceUrl) : undefined,
-        publisher: fallbackPublisher,
-      },
-    ];
-  }
-
-  return [];
+  return {
+    items: fallbackItems,
+    discoveryHash: createFingerprint([
+      sourceUrl,
+      pageTitle,
+      pageSummary,
+      metaImage ? normalizeUrl(metaImage, sourceUrl) : undefined,
+      ...uniqueItems.slice(0, 20).flatMap((item) => [item.url, item.title]),
+    ]),
+    fetchMethod: "direct",
+  };
 }
 
-async function scrapeWithApifyWebsiteCrawler(sourceUrl: string, publisher: string) {
+async function scrapeWithApifyWebsiteCrawler(
+  sourceUrl: string,
+  publisher: string
+): Promise<SourceDiscoveryResult> {
   const token = process.env.APIFY_TOKEN?.trim();
-  if (!token) return [];
+  if (!token) {
+    return {
+      items: [],
+      discoveryHash: "",
+      fetchMethod: "apify",
+    };
+  }
 
   const response = await fetch(
     `https://api.apify.com/v2/acts/${DEFAULT_APIFY_WEBSITE_ACTOR_ID}/run-sync-get-dataset-items?token=${encodeURIComponent(
@@ -236,14 +303,14 @@ async function scrapeWithApifyWebsiteCrawler(sourceUrl: string, publisher: strin
   }
 
   const items = (await response.json()) as any[];
-  return (Array.isArray(items) ? items : [])
+  const normalizedItems = (Array.isArray(items) ? items : [])
     .flatMap((item) => {
       const title =
         cleanText(item.title, 220) ||
         cleanText(item.metadata?.title, 220) ||
         cleanText(item.url, 220);
-      const url = normalizeUrl(item.url || sourceUrl);
-      if (!title || !url) return [];
+      const normalizedItemUrl = normalizeUrl(item.url || sourceUrl);
+      if (!title || !normalizedItemUrl) return [];
       return [{
         title,
         summary:
@@ -251,7 +318,7 @@ async function scrapeWithApifyWebsiteCrawler(sourceUrl: string, publisher: strin
           cleanText(item.metadata?.description) ||
           cleanText(item.text) ||
           cleanText(item.markdown),
-        url,
+        url: normalizedItemUrl,
         imageUrl:
           cleanText(item.image) ||
           cleanText(item.metadata?.image) ||
@@ -263,24 +330,51 @@ async function scrapeWithApifyWebsiteCrawler(sourceUrl: string, publisher: strin
       } satisfies CandidateItem];
     })
     .slice(0, 12);
+
+  return {
+    items: normalizedItems,
+    discoveryHash: fingerprintCandidateItems(normalizedItems),
+    fetchMethod: "apify",
+  };
 }
 
-async function scrapeWebsiteOrLeadership(source: MonitoringSourceRow) {
+async function scrapeWebsiteOrLeadership(
+  source: MonitoringSourceRow
+): Promise<SourceDiscoveryResult> {
   const sourceUrl = source.sourceUrl?.trim();
-  if (!sourceUrl) return [];
-
-  try {
-    const fromApify = await scrapeWithApifyWebsiteCrawler(sourceUrl, source.name);
-    if (fromApify.length > 0) return fromApify;
-  } catch {
-    // Fallback to direct parsing below.
+  if (!sourceUrl) {
+    return { items: [], discoveryHash: "", fetchMethod: "direct" };
   }
 
   const html = await fetchText(sourceUrl);
-  return extractWebsiteCandidates(html, sourceUrl, source.name);
+  const directResult = await extractWebsiteCandidates(html, sourceUrl, source.name);
+
+  // Cheap direct parsing is the default path. Only pay for Apify when direct discovery
+  // cannot extract useful content and the page fingerprint changed since the last check.
+  if (directResult.items.length > 0) {
+    return directResult;
+  }
+
+  if (
+    source.lastDiscoveryHash &&
+    directResult.discoveryHash &&
+    source.lastDiscoveryHash === directResult.discoveryHash
+  ) {
+    return directResult;
+  }
+
+  const apifyResult = await scrapeWithApifyWebsiteCrawler(sourceUrl, source.name);
+  if (apifyResult.items.length > 0) {
+    return {
+      ...apifyResult,
+      discoveryHash: directResult.discoveryHash || apifyResult.discoveryHash,
+    };
+  }
+
+  return directResult;
 }
 
-async function scrapeSource(source: MonitoringSourceRow) {
+async function scrapeSource(source: MonitoringSourceRow): Promise<SourceDiscoveryResult> {
   if (source.sourceType === "news") {
     const query = cleanText(`${source.name} ${source.query ?? ""}`, 200) || source.name;
     return scrapeGoogleNews(query);
@@ -322,7 +416,31 @@ async function persistItems(
   return freshItems.length;
 }
 
-export async function getMonitoringFeedItems(brandId: string, limit = 30): Promise<MonitoringFeedItem[]> {
+async function updateSourceState(
+  sourceId: string,
+  patch: {
+    lastCheckedAt?: Date;
+    lastUsedApifyAt?: Date | null;
+    lastDiscoveryHash?: string | null;
+    lastError?: string | null;
+  }
+) {
+  await db
+    .update(brandMonitoringSources)
+    .set({
+      ...(patch.lastCheckedAt !== undefined && { lastCheckedAt: patch.lastCheckedAt }),
+      ...(patch.lastUsedApifyAt !== undefined && { lastUsedApifyAt: patch.lastUsedApifyAt }),
+      ...(patch.lastDiscoveryHash !== undefined && { lastDiscoveryHash: patch.lastDiscoveryHash }),
+      ...(patch.lastError !== undefined && { lastError: patch.lastError }),
+      updatedAt: new Date(),
+    })
+    .where(eq(brandMonitoringSources.id, sourceId));
+}
+
+export async function getMonitoringFeedItems(
+  brandId: string,
+  limit = 30
+): Promise<MonitoringFeedItem[]> {
   const rows = await db
     .select()
     .from(brandScrapedItems)
@@ -348,8 +466,9 @@ export async function getMonitoringFeedItems(brandId: string, limit = 30): Promi
 export async function runBrandMonitoringSync(options: {
   brandId?: string;
   dueOnly?: boolean;
+  force?: boolean;
 } = {}) {
-  const { brandId, dueOnly = false } = options;
+  const { brandId, dueOnly = false, force = false } = options;
   const now = new Date();
 
   const brandRows = brandId
@@ -381,7 +500,12 @@ export async function runBrandMonitoringSync(options: {
     const sources = await db
       .select()
       .from(brandMonitoringSources)
-      .where(and(eq(brandMonitoringSources.brandId, brand.id), eq(brandMonitoringSources.isActive, true)))
+      .where(
+        and(
+          eq(brandMonitoringSources.brandId, brand.id),
+          eq(brandMonitoringSources.isActive, true)
+        )
+      )
       .orderBy(brandMonitoringSources.sortOrder);
 
     if (sources.length === 0) continue;
@@ -394,11 +518,26 @@ export async function runBrandMonitoringSync(options: {
 
     let insertedCount = 0;
     for (const source of sources) {
+      if (isSourceOnCooldown(source, now, force)) {
+        continue;
+      }
+
       try {
-        const items = await scrapeSource(source);
-        insertedCount += await persistItems(brand.id, source, existingUrls, items);
+        const discovery = await scrapeSource(source);
+        insertedCount += await persistItems(brand.id, source, existingUrls, discovery.items);
+        await updateSourceState(source.id, {
+          lastCheckedAt: now,
+          lastUsedApifyAt:
+            discovery.fetchMethod === "apify" ? now : undefined,
+          lastDiscoveryHash: discovery.discoveryHash || null,
+          lastError: null,
+        });
       } catch (error) {
         console.error(`Monitoring sync failed for source ${source.id}`, error);
+        await updateSourceState(source.id, {
+          lastCheckedAt: now,
+          lastError: error instanceof Error ? error.message : "Unknown monitoring sync error",
+        });
       }
     }
 

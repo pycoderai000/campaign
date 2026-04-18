@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { config } from "dotenv";
 
-config({ path: ".env.local", override: true });
-config({ path: ".env", override: false });
+config({ path: ".env.local", override: true, quiet: true });
+config({ path: ".env", override: false, quiet: true });
 
 const base =
   (process.env.APP_BASE_URL || process.env.NEXTAUTH_URL || "http://127.0.0.1:3000").replace(/\/$/, "");

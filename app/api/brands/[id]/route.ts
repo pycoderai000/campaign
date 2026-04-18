@@ -61,6 +61,9 @@ export async function GET(
       query: brandMonitoringSources.query,
       isActive: brandMonitoringSources.isActive,
       sortOrder: brandMonitoringSources.sortOrder,
+      lastCheckedAt: brandMonitoringSources.lastCheckedAt,
+      lastUsedApifyAt: brandMonitoringSources.lastUsedApifyAt,
+      lastError: brandMonitoringSources.lastError,
     })
     .from(brandMonitoringSources)
     .where(eq(brandMonitoringSources.brandId, id));
@@ -85,6 +88,9 @@ export async function GET(
         query: source.query ?? undefined,
         isActive: source.isActive,
         sortOrder: source.sortOrder,
+        lastCheckedAt: source.lastCheckedAt?.toISOString(),
+        lastUsedApifyAt: source.lastUsedApifyAt?.toISOString(),
+        lastError: source.lastError ?? undefined,
       })),
     instagramLink: row.instagramLink ?? undefined,
     instagramHandle: row.instagramHandle ?? undefined,
@@ -189,6 +195,9 @@ export async function PATCH(
       query: brandMonitoringSources.query,
       isActive: brandMonitoringSources.isActive,
       sortOrder: brandMonitoringSources.sortOrder,
+      lastCheckedAt: brandMonitoringSources.lastCheckedAt,
+      lastUsedApifyAt: brandMonitoringSources.lastUsedApifyAt,
+      lastError: brandMonitoringSources.lastError,
     })
     .from(brandMonitoringSources)
     .where(eq(brandMonitoringSources.brandId, id));
@@ -213,6 +222,9 @@ export async function PATCH(
         query: source.query ?? undefined,
         isActive: source.isActive,
         sortOrder: source.sortOrder,
+        lastCheckedAt: source.lastCheckedAt?.toISOString(),
+        lastUsedApifyAt: source.lastUsedApifyAt?.toISOString(),
+        lastError: source.lastError ?? undefined,
       })),
     instagramLink: updated.instagramLink ?? undefined,
     instagramHandle: updated.instagramHandle ?? undefined,

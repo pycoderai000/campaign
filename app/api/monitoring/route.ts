@@ -74,8 +74,9 @@ export async function POST(request: Request) {
         : undefined;
     const dueOnly =
       typeof body?.dueOnly === "boolean" ? body.dueOnly : cronCall ? true : false;
+    const force = typeof body?.force === "boolean" ? body.force : false;
 
-    const result = await runBrandMonitoringSync({ brandId, dueOnly });
+    const result = await runBrandMonitoringSync({ brandId, dueOnly, force });
     return NextResponse.json(result);
   } catch (error) {
     console.error("POST /api/monitoring failed", error);

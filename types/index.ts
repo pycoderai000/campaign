@@ -9,6 +9,9 @@ export interface BrandMonitoringSource {
   query?: string;
   isActive?: boolean;
   sortOrder?: number;
+  lastCheckedAt?: string;
+  lastUsedApifyAt?: string;
+  lastError?: string;
 }
 
 export interface BrandScrapedItem {

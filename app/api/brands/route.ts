@@ -62,6 +62,9 @@ export async function GET() {
             query: brandMonitoringSources.query,
             isActive: brandMonitoringSources.isActive,
             sortOrder: brandMonitoringSources.sortOrder,
+            lastCheckedAt: brandMonitoringSources.lastCheckedAt,
+            lastUsedApifyAt: brandMonitoringSources.lastUsedApifyAt,
+            lastError: brandMonitoringSources.lastError,
           })
           .from(brandMonitoringSources)
           .where(inArray(brandMonitoringSources.brandId, ids))
@@ -101,6 +104,9 @@ export async function GET() {
             query: source.query ?? undefined,
             isActive: source.isActive,
             sortOrder: source.sortOrder,
+            lastCheckedAt: source.lastCheckedAt?.toISOString(),
+            lastUsedApifyAt: source.lastUsedApifyAt?.toISOString(),
+            lastError: source.lastError ?? undefined,
           })),
       instagramLink: b.instagramLink ?? undefined,
       instagramHandle: b.instagramHandle ?? undefined,
