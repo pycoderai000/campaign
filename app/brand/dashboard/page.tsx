@@ -7,6 +7,7 @@ import CampaignMetrics from "@/components/CampaignMetrics";
 import SocialMediaMetrics from "@/components/SocialMediaMetrics";
 import ContentCalendar from "@/components/ContentCalendar";
 import BrandMonitoringFeed from "@/components/BrandMonitoringFeed";
+import BrandMonitoringFeedPreview from "@/components/BrandMonitoringFeedPreview";
 import NotificationBar from "@/components/NotificationBar";
 import Modal from "@/components/Modal";
 import BrandEditDeliverableForm from "@/components/BrandEditDeliverableForm";
@@ -286,6 +287,23 @@ export default function BrandDashboard() {
 
         {activeView === "campaigns" && (
           <div>
+            {!selectedCampaign && (
+              <div className="mb-6 lg:mb-8 rounded-2xl border border-gray-200 bg-white/80 p-5 sm:p-6 shadow-soft">
+                <div className="mb-4">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">Latest Brand Feed</h2>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    Recent news, website updates, and social posts scraped for your brand.
+                  </p>
+                </div>
+                <BrandMonitoringFeedPreview
+                  items={feedItems}
+                  loading={loading}
+                  limit={3}
+                  emptyMessage="No monitored items yet. They will appear here after the daily sync or a manual sync."
+                />
+              </div>
+            )}
+
             <div className="mb-6 lg:mb-8">
               <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-4 sm:mb-6">Campaigns</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">

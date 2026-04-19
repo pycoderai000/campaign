@@ -11,10 +11,11 @@ import EditCampaignForm from "@/components/EditCampaignForm";
 import ExcelDeliverablesTable from "@/components/ExcelDeliverablesTable";
 import DeliverablesTable from "@/components/DeliverablesTable";
 import CampaignMetrics from "@/components/CampaignMetrics";
+import BrandMonitoringFeedPreview from "@/components/BrandMonitoringFeedPreview";
 import EditDeliverableForm from "@/components/EditDeliverableForm";
 import ContentCalendar from "@/components/ContentCalendar";
 import DeliverableDetailModal from "@/components/DeliverableDetailModal";
-import type { Brand, Campaign, Deliverable, Notification, FileOrUrl } from "@/types";
+import type { Brand, BrandScrapedItem, Campaign, Deliverable, Notification, FileOrUrl } from "@/types";
 import { api, uploadFiles } from "@/lib/api";
 
 function isFile(f: FileOrUrl): f is File {
@@ -53,15 +54,60 @@ export default function AdminDashboard() {
   const [syncingBrandId, setSyncingBrandId] = useState<string | null>(null);
   const [syncingMonitoringBrandId, setSyncingMonitoringBrandId] = useState<string | null>(null);
   const [deliverableDetailId, setDeliverableDetailId] = useState<string | null>(null);
+  const [brandFeedItems, setBrandFeedItems] = useState<Record<string, BrandScrapedItem[]>>({});
+  const [brandFeedLoadingIds, setBrandFeedLoadingIds] = useState<Record<string, boolean>>({});
+
+  const fetchBrandFeeds = useCallback(async (brandIds: string[]) => {
+    if (brandIds.length === 0) {
+      setBrandFeedItems({});
+      setBrandFeedLoadingIds({});
+      return;
+    }
+
+    setBrandFeedLoadingIds((prev) => ({
+      ...prev,
+      ...Object.fromEntries(brandIds.map((id) => [id, true])),
+    }));
+
+    try {
+      const results = await Promise.all(
+        brandIds.map(async (brandId) => {
+          try {
+            const data = await api.get<{ items: BrandScrapedItem[] }>(
+              `/api/monitoring?brandId=${brandId}&limit=3`
+            );
+            return [brandId, Array.isArray(data?.items) ? data.items : []] as const;
+          } catch {
+            return [brandId, []] as const;
+          }
+        })
+      );
+
+      setBrandFeedItems((prev) => ({
+        ...prev,
+        ...Object.fromEntries(results),
+      }));
+    } finally {
+      setBrandFeedLoadingIds((prev) => {
+        const next = { ...prev };
+        for (const brandId of brandIds) {
+          delete next[brandId];
+        }
+        return next;
+      });
+    }
+  }, []);
 
   const fetchBrands = useCallback(async () => {
     try {
       const data = await api.get<Brand[]>("/api/brands");
-      setBrands(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setBrands(list);
+      await fetchBrandFeeds(list.map((brand) => brand.id));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load brands");
     }
-  }, []);
+  }, [fetchBrandFeeds]);
 
   const fetchCampaigns = useCallback(async () => {
     try {
@@ -491,6 +537,24 @@ export default function AdminDashboard() {
                         {metaInstagramStatus && !metaInstagramStatus.hasInstagram && metaInstagramStatus.configured && (
                           <p className="mt-2 text-xs text-amber-600 line-clamp-2">{metaInstagramStatus.message}</p>
                         )}
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="mb-3">
+                          <p className="text-gray-500 text-xs">Latest monitored content</p>
+                          <p className="text-gray-800 font-semibold text-sm">
+                            Recent scraped items for this brand
+                          </p>
+                        </div>
+                        <BrandMonitoringFeedPreview
+                          items={brandFeedItems[brand.id] ?? []}
+                          loading={Boolean(brandFeedLoadingIds[brand.id])}
+                          limit={3}
+                          emptyMessage={
+                            brand.monitoringEnabled
+                              ? "No monitored items yet. Run sync or wait for the daily schedule."
+                              : "Enable daily monitoring for this brand to show scraped items here."
+                          }
+                        />
                       </div>
                     </div>
                   </div>
