@@ -8,12 +8,14 @@ import SocialMediaMetrics from "@/components/SocialMediaMetrics";
 import ContentCalendar from "@/components/ContentCalendar";
 import BrandMonitoringFeed from "@/components/BrandMonitoringFeed";
 import BrandMonitoringFeedPreview from "@/components/BrandMonitoringFeedPreview";
+import BrandMonitoringSourceList from "@/components/BrandMonitoringSourceList";
 import NotificationBar from "@/components/NotificationBar";
 import Modal from "@/components/Modal";
 import BrandEditDeliverableForm from "@/components/BrandEditDeliverableForm";
 import BrandRequestRevisionForm from "@/components/BrandRequestRevisionForm";
 import DeliverableDetailModal from "@/components/DeliverableDetailModal";
 import type {
+  BrandMonitoringSource,
   BrandScrapedItem,
   Campaign,
   Deliverable,
@@ -41,6 +43,7 @@ export default function BrandDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [socialMetrics, setSocialMetrics] = useState<SocialMediaMetricsType | null>(null);
   const [feedItems, setFeedItems] = useState<BrandScrapedItem[]>([]);
+  const [monitoringSources, setMonitoringSources] = useState<BrandMonitoringSource[]>([]);
 
   const fetchCampaigns = useCallback(async () => {
     try {
@@ -98,10 +101,17 @@ export default function BrandDashboard() {
 
   const fetchFeedItems = useCallback(async () => {
     try {
-      const data = await api.get<{ items: BrandScrapedItem[] }>("/api/monitoring");
+      const data = await api.get<{
+        items: BrandScrapedItem[];
+        monitoringSources?: BrandMonitoringSource[];
+      }>("/api/monitoring");
       setFeedItems(Array.isArray(data?.items) ? data.items : []);
+      setMonitoringSources(
+        Array.isArray(data?.monitoringSources) ? data.monitoringSources : []
+      );
     } catch {
       setFeedItems([]);
+      setMonitoringSources([]);
     }
   }, []);
 
@@ -288,19 +298,33 @@ export default function BrandDashboard() {
         {activeView === "campaigns" && (
           <div>
             {!selectedCampaign && (
-              <div className="mb-6 lg:mb-8 rounded-2xl border border-gray-200 bg-white/80 p-5 sm:p-6 shadow-soft">
-                <div className="mb-4">
-                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">Latest Brand Feed</h2>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    Recent news, website updates, and social posts scraped for your brand.
-                  </p>
+              <div className="mb-6 lg:mb-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <div className="rounded-2xl border border-gray-200 bg-white/80 p-5 sm:p-6 shadow-soft">
+                  <div className="mb-4">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">Latest Brand Feed</h2>
+                    <p className="text-sm sm:text-base text-gray-600">
+                      Recent news, website updates, and social posts scraped for your brand.
+                    </p>
+                  </div>
+                  <BrandMonitoringFeedPreview
+                    items={feedItems}
+                    loading={loading}
+                    limit={3}
+                    emptyMessage="No monitored items yet. They will appear here after the daily sync or a manual sync."
+                  />
                 </div>
-                <BrandMonitoringFeedPreview
-                  items={feedItems}
-                  loading={loading}
-                  limit={3}
-                  emptyMessage="No monitored items yet. They will appear here after the daily sync or a manual sync."
-                />
+                <div className="rounded-2xl border border-gray-200 bg-white/80 p-5 sm:p-6 shadow-soft">
+                  <div className="mb-4">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">Configured Sources</h2>
+                    <p className="text-sm sm:text-base text-gray-600">
+                      All monitoring sources configured for this brand account.
+                    </p>
+                  </div>
+                  <BrandMonitoringSourceList
+                    sources={monitoringSources}
+                    emptyMessage="No monitoring sources configured for this brand."
+                  />
+                </div>
               </div>
             )}
 

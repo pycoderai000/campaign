@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { db, brands } from "@/lib/db";
+import { db, brands, brandMonitoringSources } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { getMonitoringFeedItems, runBrandMonitoringSync } from "@/lib/brand-monitoring";
 
@@ -45,12 +45,41 @@ export async function GET(request: Request) {
       brandId,
       Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 100) : 30
     );
+    const sourceRows = await db
+      .select({
+        id: brandMonitoringSources.id,
+        name: brandMonitoringSources.name,
+        sourceType: brandMonitoringSources.sourceType,
+        sourceUrl: brandMonitoringSources.sourceUrl,
+        query: brandMonitoringSources.query,
+        isActive: brandMonitoringSources.isActive,
+        sortOrder: brandMonitoringSources.sortOrder,
+        lastCheckedAt: brandMonitoringSources.lastCheckedAt,
+        lastUsedApifyAt: brandMonitoringSources.lastUsedApifyAt,
+        lastError: brandMonitoringSources.lastError,
+      })
+      .from(brandMonitoringSources)
+      .where(eq(brandMonitoringSources.brandId, brandId));
     return NextResponse.json({
       brandId: brand.id,
       brandName: brand.name,
       monitoringEnabled: brand.monitoringEnabled,
       monitoringTime: brand.monitoringTime,
       monitoringLastRunAt: brand.monitoringLastRunAt?.toISOString(),
+      monitoringSources: sourceRows
+        .sort((a, z) => a.sortOrder - z.sortOrder)
+        .map((source) => ({
+          id: source.id,
+          name: source.name,
+          sourceType: source.sourceType,
+          sourceUrl: source.sourceUrl ?? undefined,
+          query: source.query ?? undefined,
+          isActive: source.isActive,
+          sortOrder: source.sortOrder,
+          lastCheckedAt: source.lastCheckedAt?.toISOString(),
+          lastUsedApifyAt: source.lastUsedApifyAt?.toISOString(),
+          lastError: source.lastError ?? undefined,
+        })),
       items,
     });
   } catch (error) {

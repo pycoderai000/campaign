@@ -73,6 +73,9 @@ export default function BrandMonitoringFeedPreview({
             <span className="text-xs text-gray-500">{formatDate(item.publishedAt || item.createdAt)}</span>
           </div>
           <h4 className="mt-2 text-sm font-semibold text-slate-800 line-clamp-2">{item.title}</h4>
+          {item.summary && (
+            <p className="mt-1 text-sm text-gray-600 line-clamp-2">{item.summary}</p>
+          )}
           {item.publisher && (
             <p className="mt-1 text-xs text-gray-500 line-clamp-1">{item.publisher}</p>
           )}

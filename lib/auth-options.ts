@@ -4,6 +4,11 @@ import { db, users } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
+const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
+const useSecureCookies =
+  process.env.NODE_ENV === "production" ||
+  process.env.NEXTAUTH_URL?.startsWith("https://") === true;
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -51,7 +56,23 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
+  session: { strategy: "jwt", maxAge: SESSION_MAX_AGE, updateAge: 24 * 60 * 60 },
+  jwt: { maxAge: SESSION_MAX_AGE },
+  useSecureCookies,
+  cookies: {
+    sessionToken: {
+      name: useSecureCookies
+        ? "__Secure-next-auth.session-token"
+        : "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+        maxAge: SESSION_MAX_AGE,
+      },
+    },
+  },
   pages: { signIn: "/login" },
   secret: process.env.NEXTAUTH_SECRET,
 };

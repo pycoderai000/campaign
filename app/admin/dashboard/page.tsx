@@ -11,11 +11,21 @@ import EditCampaignForm from "@/components/EditCampaignForm";
 import ExcelDeliverablesTable from "@/components/ExcelDeliverablesTable";
 import DeliverablesTable from "@/components/DeliverablesTable";
 import CampaignMetrics from "@/components/CampaignMetrics";
+import BrandMonitoringFeed from "@/components/BrandMonitoringFeed";
 import BrandMonitoringFeedPreview from "@/components/BrandMonitoringFeedPreview";
+import BrandMonitoringSourceList from "@/components/BrandMonitoringSourceList";
 import EditDeliverableForm from "@/components/EditDeliverableForm";
 import ContentCalendar from "@/components/ContentCalendar";
 import DeliverableDetailModal from "@/components/DeliverableDetailModal";
-import type { Brand, BrandScrapedItem, Campaign, Deliverable, Notification, FileOrUrl } from "@/types";
+import type {
+  Brand,
+  BrandMonitoringSource,
+  BrandScrapedItem,
+  Campaign,
+  Deliverable,
+  Notification,
+  FileOrUrl,
+} from "@/types";
 import { api, uploadFiles } from "@/lib/api";
 
 function isFile(f: FileOrUrl): f is File {
@@ -31,7 +41,7 @@ function sortDeliverablesByPostingDate<T extends { postingDate: string; postingT
 }
 
 export default function AdminDashboard() {
-  const [activeView, setActiveView] = useState<"brands" | "campaigns" | "deliverables" | "metrics" | "calendar">("brands");
+  const [activeView, setActiveView] = useState<"brands" | "stories" | "campaigns" | "deliverables" | "metrics" | "calendar">("brands");
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [selectedCampaignForCalendar, setSelectedCampaignForCalendar] = useState<Campaign | null>(null);
   const [showCreateBrand, setShowCreateBrand] = useState(false);
@@ -56,6 +66,10 @@ export default function AdminDashboard() {
   const [deliverableDetailId, setDeliverableDetailId] = useState<string | null>(null);
   const [brandFeedItems, setBrandFeedItems] = useState<Record<string, BrandScrapedItem[]>>({});
   const [brandFeedLoadingIds, setBrandFeedLoadingIds] = useState<Record<string, boolean>>({});
+  const [selectedStoryBrandId, setSelectedStoryBrandId] = useState<string | null>(null);
+  const [storyFeedItems, setStoryFeedItems] = useState<BrandScrapedItem[]>([]);
+  const [storyMonitoringSources, setStoryMonitoringSources] = useState<BrandMonitoringSource[]>([]);
+  const [storiesLoading, setStoriesLoading] = useState(false);
 
   const fetchBrandFeeds = useCallback(async (brandIds: string[]) => {
     if (brandIds.length === 0) {
@@ -98,11 +112,39 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const fetchStoryFeed = useCallback(async (brandId: string | null) => {
+    if (!brandId) {
+      setStoryFeedItems([]);
+      setStoryMonitoringSources([]);
+      return;
+    }
+
+    setStoriesLoading(true);
+    try {
+      const data = await api.get<{
+        items: BrandScrapedItem[];
+        monitoringSources?: BrandMonitoringSource[];
+      }>(`/api/monitoring?brandId=${brandId}&limit=60`);
+      setStoryFeedItems(Array.isArray(data?.items) ? data.items : []);
+      setStoryMonitoringSources(
+        Array.isArray(data?.monitoringSources) ? data.monitoringSources : []
+      );
+    } catch {
+      setStoryFeedItems([]);
+      setStoryMonitoringSources([]);
+    } finally {
+      setStoriesLoading(false);
+    }
+  }, []);
+
   const fetchBrands = useCallback(async () => {
     try {
       const data = await api.get<Brand[]>("/api/brands");
       const list = Array.isArray(data) ? data : [];
       setBrands(list);
+      setSelectedStoryBrandId((prev) =>
+        prev && list.some((brand) => brand.id === prev) ? prev : list[0]?.id ?? null
+      );
       await fetchBrandFeeds(list.map((brand) => brand.id));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load brands");
@@ -158,11 +200,16 @@ export default function AdminDashboard() {
 
   const sidebarItems = [
     { label: "Brands", href: "#", onClick: () => setActiveView("brands"), viewKey: "brands" },
+    { label: "Scraped Stories", href: "#", onClick: () => setActiveView("stories"), viewKey: "stories" },
     { label: "Campaigns", href: "#", onClick: () => setActiveView("campaigns"), viewKey: "campaigns" },
     { label: "Deliverables", href: "#", onClick: () => setActiveView("deliverables"), viewKey: "deliverables" },
     { label: "Metrics", href: "#", onClick: () => setActiveView("metrics"), viewKey: "metrics" },
     { label: "Content Calendar", href: "#", onClick: () => setActiveView("calendar"), viewKey: "calendar" },
   ];
+
+  useEffect(() => {
+    void fetchStoryFeed(selectedStoryBrandId);
+  }, [fetchStoryFeed, selectedStoryBrandId]);
 
   const handleCreateBrand = async (brandData: CreateBrandPayload) => {
     try {
@@ -321,7 +368,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSyncMonitoring = async (brandId: string) => {
+  const handleSyncMonitoring = useCallback(async (brandId: string) => {
     setSyncingMonitoringBrandId(brandId);
     try {
       const res = await api.post<{ results?: { insertedCount: number }[] }>("/api/monitoring", {
@@ -335,12 +382,15 @@ export default function AdminDashboard() {
           : "Web feed synced. No new items found."
       );
       await fetchBrands();
+      if (brandId === selectedStoryBrandId) {
+        await fetchStoryFeed(brandId);
+      }
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed to sync web feed");
     } finally {
       setSyncingMonitoringBrandId(null);
     }
-  };
+  }, [fetchBrands, fetchStoryFeed, selectedStoryBrandId]);
 
   const handleNotificationClick = (notification: Notification) => {
     setActiveView("deliverables");
@@ -358,6 +408,9 @@ export default function AdminDashboard() {
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     }
   };
+
+  const selectedStoryBrand =
+    brands.find((brand) => brand.id === selectedStoryBrandId) ?? null;
 
   if (loading) {
     return (
@@ -514,6 +567,14 @@ export default function AdminDashboard() {
                               : "Disabled"}
                           </p>
                         </div>
+                        <div className="mb-3">
+                          <BrandMonitoringSourceList
+                            sources={(brand.monitoringSources ?? []).filter(
+                              (source) => source.isActive !== false
+                            )}
+                            emptyMessage="No monitoring sources configured for this brand."
+                          />
+                        </div>
                         <button
                           type="button"
                           onClick={() => handleSyncMonitoring(brand.id)}
@@ -559,6 +620,70 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeView === "stories" && (
+          <div>
+            <div className="mb-4 sm:mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-800">Scraped Stories</h2>
+                <p className="mt-2 text-sm sm:text-base text-gray-600">
+                  View scraped news, website updates, and social posts by brand.
+                </p>
+              </div>
+              {brands.length > 0 && (
+                <div className="w-full sm:w-80">
+                  <label className="mb-2 block text-xs sm:text-sm font-semibold text-gray-700">
+                    Filter by brand
+                  </label>
+                  <select
+                    value={selectedStoryBrandId ?? ""}
+                    onChange={(e) => setSelectedStoryBrandId(e.target.value || null)}
+                    className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {brands.map((brand) => (
+                      <option key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {selectedStoryBrand ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+                  <div className="rounded-2xl border border-gray-200 bg-white/80 p-5 shadow-soft">
+                    <h3 className="text-lg font-bold text-slate-800">{selectedStoryBrand.name}</h3>
+                    <p className="mt-1 text-sm text-gray-600">
+                      Configured monitoring sources for this brand
+                    </p>
+                    <div className="mt-4">
+                      <BrandMonitoringSourceList
+                        sources={storyMonitoringSources}
+                        emptyMessage="No monitoring sources configured for this brand."
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <BrandMonitoringFeed
+                      items={storyFeedItems}
+                      loading={storiesLoading}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-gray-200 bg-white/80 p-16 text-center shadow-soft">
+                <p className="text-lg font-semibold text-gray-600">No brands available</p>
+                <p className="mt-2 text-sm text-gray-400">
+                  Create a brand first to browse scraped stories.
+                </p>
               </div>
             )}
           </div>
